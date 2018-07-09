@@ -16,11 +16,11 @@ public class VimSelectAroundExtension extends VimNonDisposableExtension {
   @Override
   protected void initOnce() {
 
-    putExtensionHandlerMapping(MappingMode.VO, parseKeys("<Plug>around"), new AroundHandler(), false);
-    putExtensionHandlerMapping(MappingMode.VO, parseKeys("<Plug>unAround"), new UnAroungHandler(), false);
+    putExtensionHandlerMapping(MappingMode.ALL, parseKeys("<Plug>around"), new AroundHandler(), false);
+    putExtensionHandlerMapping(MappingMode.ALL, parseKeys("<Plug>unAround"), new UnAroungHandler(), false);
 
-    putKeyMapping(MappingMode.VO, parseKeys("a"), parseKeys("<Plug>around"), true);
-    putKeyMapping(MappingMode.VO, parseKeys("A"), parseKeys("<Plug>unAround"), true);
+    putKeyMapping(MappingMode.ALL, parseKeys("<a-w>"), parseKeys("<Plug>around"), true);
+    putKeyMapping(MappingMode.ALL, parseKeys("<c-a-w>"), parseKeys("<Plug>unAround"), true);
   }
 
   @NotNull
