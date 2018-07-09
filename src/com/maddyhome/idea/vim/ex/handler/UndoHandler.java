@@ -37,6 +37,6 @@ public class UndoHandler extends CommandHandler {
   }
 
   public boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull ExCommand cmd) {
-    return UndoRedoHelper.undo(context);
+    return UndoRedoHelper.undo(context, editor);
   }
 }
