@@ -25,8 +25,8 @@ import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.editor.actionSystem.ActionPlan;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.actionSystem.ActionPlan;
 import com.intellij.openapi.editor.actionSystem.TypedActionHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.impl.source.tree.injected.InjectedLanguageUtil;
@@ -36,8 +36,18 @@ import com.maddyhome.idea.vim.command.CommandState;
 import com.maddyhome.idea.vim.command.MappingMode;
 import com.maddyhome.idea.vim.extension.VimExtensionHandler;
 import com.maddyhome.idea.vim.group.RegisterGroup;
-import com.maddyhome.idea.vim.helper.*;
-import com.maddyhome.idea.vim.key.*;
+import com.maddyhome.idea.vim.helper.DigraphSequence;
+import com.maddyhome.idea.vim.helper.EditorDataContext;
+import com.maddyhome.idea.vim.helper.EditorHelper;
+import com.maddyhome.idea.vim.helper.RunnableHelper;
+import com.maddyhome.idea.vim.helper.StringHelper;
+import com.maddyhome.idea.vim.jpane.VimCommandStatusBarWidget;
+import com.maddyhome.idea.vim.key.ArgumentNode;
+import com.maddyhome.idea.vim.key.BranchNode;
+import com.maddyhome.idea.vim.key.CommandNode;
+import com.maddyhome.idea.vim.key.KeyMapping;
+import com.maddyhome.idea.vim.key.MappingInfo;
+import com.maddyhome.idea.vim.key.Node;
 import com.maddyhome.idea.vim.option.Options;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,7 +105,7 @@ public class KeyHandler {
 
   /**
    * Invoked before acquiring a write lock and actually handling the keystroke.
-   *
+   * <p>
    * Drafts an optional {@link ActionPlan} that will be used as a base for zero-latency rendering in editor.
    *
    * @param editor  The editor the key was typed into
@@ -103,8 +113,10 @@ public class KeyHandler {
    * @param context The data context
    * @param plan    The current action plan
    */
-  public void beforeHandleKey(@NotNull Editor editor, @NotNull KeyStroke key,
-                              @NotNull DataContext context, @NotNull ActionPlan plan) {
+  public void beforeHandleKey(@NotNull Editor editor,
+                              @NotNull KeyStroke key,
+                              @NotNull DataContext context,
+                              @NotNull ActionPlan plan) {
 
     final CommandState.Mode mode = CommandState.getInstance(editor).getMode();
 
@@ -125,9 +137,12 @@ public class KeyHandler {
     handleKey(editor, key, context, true);
   }
 
-  public void handleKey(@NotNull Editor editor, @NotNull KeyStroke key, @NotNull DataContext context,
+  public void handleKey(@NotNull Editor editor,
+                        @NotNull KeyStroke key,
+                        @NotNull DataContext context,
                         boolean allowKeyMappings) {
     VimPlugin.clearError();
+    VimCommandStatusBarWidget.updateVimCommandStatusBar(editor.getProject(), key.getKeyChar());
     // All the editor actions should be performed with top level editor!!!
     // Be careful: all the EditorActionHandler implementation should correctly process InjectedEditors
     editor = InjectedLanguageUtil.getTopLevelEditor(editor);
@@ -154,6 +169,7 @@ public class KeyHandler {
       count /= 10;
     }
     else if (isEditorReset(key, editorState)) {
+      VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
       handleEditorReset(editor, key, context);
     }
     // If we got this far the user is entering a command or supplying an argument to an entered command.
@@ -192,12 +208,12 @@ public class KeyHandler {
         if (lastWasBS && lastChar != 0 && Options.getInstance().isSet("digraph")) {
           char dig = VimPlugin.getDigraph().getDigraph(lastChar, key.getKeyChar());
           key = KeyStroke.getKeyStroke(dig);
-        }
 
-        // If we are in insert/replace mode send this key in for processing
-        if (editorState.getMode() == CommandState.Mode.INSERT || editorState.getMode() == CommandState.Mode.REPLACE) {
-          if (!VimPlugin.getChange().processKey(editor, context, key)) {
-            shouldRecord = false;
+          // If we are in insert/replace mode send this key in for processing
+          if (editorState.getMode() == CommandState.Mode.INSERT || editorState.getMode() == CommandState.Mode.REPLACE) {
+            if (!VimPlugin.getChange().processKey(editor, context, key)) {
+              shouldRecord = false;
+            }
           }
         }
         else if (editorState.getMappingMode() == MappingMode.CMD_LINE) {
@@ -208,6 +224,7 @@ public class KeyHandler {
         // If we get here then the user has entered an unrecognized series of keystrokes
         else {
           state = State.BAD_COMMAND;
+          VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
         }
 
         lastChar = key.getKeyChar();
@@ -217,19 +234,19 @@ public class KeyHandler {
 
     // Do we have a fully entered command at this point? If so, lets execute it
     if (state == State.READY) {
+      VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
       executeCommand(editor, key, context, editorState);
     }
     else if (state == State.BAD_COMMAND) {
       if (editorState.getMappingMode() == MappingMode.OP_PENDING) {
         editorState.popState();
       }
-      else {
-        VimPlugin.indicateError();
-        reset(editor);
-      }
+      VimPlugin.indicateError();
+      reset(editor);
     }
     // We had some sort of error so reset the handler and let the user know (beep)
     else if (state == State.ERROR) {
+      VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
       VimPlugin.indicateError();
       fullReset(editor);
     }
@@ -238,7 +255,8 @@ public class KeyHandler {
     }
   }
 
-  private boolean handleKeyMapping(@NotNull final Editor editor, @NotNull final KeyStroke key,
+  private boolean handleKeyMapping(@NotNull final Editor editor,
+                                   @NotNull final KeyStroke key,
                                    @NotNull final DataContext context) {
     final CommandState commandState = CommandState.getInstance(editor);
     commandState.stopMappingTimer();
@@ -266,6 +284,7 @@ public class KeyHandler {
           @Override
           public void actionPerformed(ActionEvent actionEvent) {
             mappingKeys.clear();
+            VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
             for (KeyStroke keyStroke : fromKeys) {
               handleKey(editor, keyStroke, new EditorDataContext(editor), false);
             }
@@ -357,13 +376,18 @@ public class KeyHandler {
 
   private boolean isDeleteCommandCount(@NotNull KeyStroke key, @NotNull CommandState editorState) {
     return (editorState.getMode() == CommandState.Mode.COMMAND || editorState.getMode() == CommandState.Mode.VISUAL) &&
-           state == State.NEW_COMMAND && currentArg != Argument.Type.CHARACTER && currentArg != Argument.Type.DIGRAPH &&
-           key.getKeyCode() == KeyEvent.VK_DELETE && count != 0;
+           state == State.NEW_COMMAND &&
+           currentArg != Argument.Type.CHARACTER &&
+           currentArg != Argument.Type.DIGRAPH &&
+           key.getKeyCode() == KeyEvent.VK_DELETE &&
+           count != 0;
   }
 
   private boolean isCommandCount(@NotNull CommandState editorState, char chKey) {
     return (editorState.getMode() == CommandState.Mode.COMMAND || editorState.getMode() == CommandState.Mode.VISUAL) &&
-           state == State.NEW_COMMAND && currentArg != Argument.Type.CHARACTER && currentArg != Argument.Type.DIGRAPH &&
+           state == State.NEW_COMMAND &&
+           currentArg != Argument.Type.CHARACTER &&
+           currentArg != Argument.Type.DIGRAPH &&
            Character.isDigit(chKey) &&
            (count != 0 || chKey != '0');
   }
@@ -401,7 +425,9 @@ public class KeyHandler {
     }
   }
 
-  private boolean handleDigraph(@NotNull Editor editor, @NotNull KeyStroke key, @NotNull DataContext context,
+  private boolean handleDigraph(@NotNull Editor editor,
+                                @NotNull KeyStroke key,
+                                @NotNull DataContext context,
                                 @Nullable Node node) {
     if (digraph == null && !(node instanceof CommandNode) && DigraphSequence.isDigraphStart(key)) {
       digraph = new DigraphSequence();
@@ -430,7 +456,9 @@ public class KeyHandler {
     return false;
   }
 
-  private void executeCommand(@NotNull Editor editor, @NotNull KeyStroke key, @NotNull DataContext context,
+  private void executeCommand(@NotNull Editor editor,
+                              @NotNull KeyStroke key,
+                              @NotNull DataContext context,
                               @NotNull CommandState editorState) {
     // Let's go through the command stack and merge it all into one command. At this time there should never
     // be more than two commands on the stack - one is the actual command and the other would be a motion
@@ -487,8 +515,11 @@ public class KeyHandler {
     }
   }
 
-  private boolean handleArgumentNode(@NotNull Editor editor, @NotNull KeyStroke key, @NotNull DataContext context,
-                                     @NotNull CommandState editorState, @NotNull ArgumentNode node) {
+  private boolean handleArgumentNode(@NotNull Editor editor,
+                                     @NotNull KeyStroke key,
+                                     @NotNull DataContext context,
+                                     @NotNull CommandState editorState,
+                                     @NotNull ArgumentNode node) {
     // Create a new command based on what the user has typed so far, excluding this keystroke.
     Command cmd = new Command(count, node.getActionId(), node.getAction(), node.getCmdType(), node.getFlags());
     cmd.setKeys(keys);
@@ -572,8 +603,11 @@ public class KeyHandler {
     }
   }
 
-  private void handleBranchNode(@NotNull Editor editor, @NotNull DataContext context, @NotNull CommandState editorState,
-                                char key, @NotNull BranchNode node) {
+  private void handleBranchNode(@NotNull Editor editor,
+                                @NotNull DataContext context,
+                                @NotNull CommandState editorState,
+                                char key,
+                                @NotNull BranchNode node) {
     // Flag that we aren't allowing any more count digits (unless it's OK)
     if ((node.getFlags() & Command.FLAG_ALLOW_MID_COUNT) == 0) {
       state = State.COMMAND;
@@ -624,8 +658,8 @@ public class KeyHandler {
     // What is "place"? Leave it the empty string for now.
     // Is the template presentation sufficient?
     // What are the modifiers? Is zero OK?
-    final AnActionEvent event = new AnActionEvent(null, context, "", action.getTemplatePresentation(),
-                                                  ActionManager.getInstance(), 0);
+    final AnActionEvent event =
+      new AnActionEvent(null, context, "", action.getTemplatePresentation(), ActionManager.getInstance(), 0);
     action.update(event);
     if (event.getPresentation().isEnabled()) {
       action.actionPerformed(event);
@@ -728,11 +762,7 @@ public class KeyHandler {
   }
 
   private static enum State {
-    NEW_COMMAND,
-    COMMAND,
-    READY,
-    ERROR,
-    BAD_COMMAND
+    NEW_COMMAND, COMMAND, READY, ERROR, BAD_COMMAND
   }
 
   private int count;
