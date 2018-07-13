@@ -32,6 +32,7 @@ import com.maddyhome.idea.vim.helper.Msg;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.datatransfer.StringSelection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -187,8 +188,8 @@ public class CommandParser {
     // Run the command
     boolean ok = handler.process(editor, context, command, count);
     if (ok && (handler.getArgFlags() & CommandHandler.DONT_SAVE_LAST) == 0) {
-      VimPlugin.getRegister().storeTextInternal(editor, new TextRange(-1, -1), cmd,
-                                                                  SelectionType.CHARACTER_WISE, ':', false);
+      VimPlugin.getRegister().storeTextInternal(editor, new TextRange(-1, -1), new StringSelection(cmd),
+                                                SelectionType.CHARACTER_WISE, ':', false);
     }
 
     if ((handler.getArgFlags() & CommandHandler.DONT_REOPEN) != 0) {

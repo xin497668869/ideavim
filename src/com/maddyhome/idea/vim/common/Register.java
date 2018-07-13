@@ -24,7 +24,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.KeyEvent;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -32,9 +35,10 @@ import java.util.List;
  * Represents a register.
  */
 public class Register {
+  private Transferable transferable;
   private char name;
   @NotNull private final SelectionType type;
-  @NotNull private final List<KeyStroke> keys;
+  @NotNull private  List<KeyStroke> keys;
 
   public Register(char name, @NotNull SelectionType type, @NotNull String text) {
     this.name = name;
@@ -46,6 +50,18 @@ public class Register {
     this.name = name;
     this.type = type;
     this.keys = keys;
+  }
+
+  public Register(char name, @NotNull SelectionType type, Transferable transferable) {
+    this.name = name;
+    this.type = type;
+    try {
+      this.keys = StringHelper.stringToKeys((String)transferable.getTransferData(DataFlavor.stringFlavor));
+    } catch (Exception e) {
+      this.keys = Collections.emptyList();
+      e.printStackTrace();
+    }
+    this.transferable = transferable;
   }
 
   public void rename(char name) {
@@ -81,6 +97,11 @@ public class Register {
       builder.append(c);
     }
     return builder.toString();
+  }
+
+
+  public Transferable getTransferable() {
+    return transferable;
   }
 
   /**

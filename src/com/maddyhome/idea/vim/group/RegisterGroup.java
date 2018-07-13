@@ -19,10 +19,27 @@
 package com.maddyhome.idea.vim.group;
 
 import com.google.common.collect.ImmutableList;
+import com.intellij.codeInsight.editorActions.CopyPastePreProcessor;
+import com.intellij.codeInsight.editorActions.TextBlockTransferable;
+import com.intellij.codeInsight.editorActions.TextBlockTransferableData;
+import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Caret;
+import com.intellij.openapi.editor.CaretAction;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.RawText;
+import com.intellij.openapi.editor.SelectionModel;
+import com.intellij.openapi.editor.actions.CopyAction;
+import com.intellij.openapi.editor.actions.EditorActionUtil;
+import com.intellij.openapi.editor.impl.EditorCopyPasteHelperImpl;
+import com.intellij.openapi.extensions.Extensions;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
 import com.intellij.util.Function;
 import com.intellij.util.containers.ContainerUtil;
 import com.maddyhome.idea.vim.VimPlugin;
@@ -31,7 +48,10 @@ import com.maddyhome.idea.vim.action.motion.search.SearchAgainNextAction;
 import com.maddyhome.idea.vim.action.motion.search.SearchAgainPreviousAction;
 import com.maddyhome.idea.vim.action.motion.search.SearchEntryFwdAction;
 import com.maddyhome.idea.vim.action.motion.search.SearchEntryRevAction;
-import com.maddyhome.idea.vim.action.motion.text.*;
+import com.maddyhome.idea.vim.action.motion.text.MotionParagraphNextAction;
+import com.maddyhome.idea.vim.action.motion.text.MotionParagraphPreviousAction;
+import com.maddyhome.idea.vim.action.motion.text.MotionSentenceNextStartAction;
+import com.maddyhome.idea.vim.action.motion.text.MotionSentencePreviousStartAction;
 import com.maddyhome.idea.vim.action.motion.updown.MotionPercentOrMatchAction;
 import com.maddyhome.idea.vim.command.Argument;
 import com.maddyhome.idea.vim.command.Command;
@@ -39,7 +59,6 @@ import com.maddyhome.idea.vim.command.CommandState;
 import com.maddyhome.idea.vim.command.SelectionType;
 import com.maddyhome.idea.vim.common.Register;
 import com.maddyhome.idea.vim.common.TextRange;
-import com.maddyhome.idea.vim.helper.EditorHelper;
 import com.maddyhome.idea.vim.helper.StringHelper;
 import com.maddyhome.idea.vim.option.ListOption;
 import com.maddyhome.idea.vim.option.OptionChangeEvent;
@@ -51,8 +70,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.KeyEvent;
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * This group works with command associated with copying and pasting text
@@ -137,15 +164,20 @@ public class RegisterGroup {
   public boolean storeText(@NotNull Editor editor, @NotNull TextRange range, @NotNull SelectionType type,
                            boolean isDelete) {
     if (isRegisterWritable()) {
-      String text = EditorHelper.getText(editor, range);
-
-      return storeTextInternal(editor, range, text, type, lastRegister, isDelete);
+      //String text = EditorHelper.getText(editor, range);
+      //editor.getSelectionModel().selectLineAtCaret();
+      //editor.getScrollingModel().scrollToCaret(ScrollType.RELATIVE);
+      //if(true) {
+      //  return true;
+      //}
+      Transferable transferable = getTransferable(editor, editor.getCaretModel().getCurrentCaret());
+      return storeTextInternal(editor, range, transferable, type, lastRegister, isDelete);
     }
 
     return false;
   }
 
-  public boolean storeTextInternal(@NotNull Editor editor, @NotNull TextRange range, @NotNull String text,
+  public boolean storeTextInternal(@NotNull Editor editor, @NotNull TextRange range, @NotNull Transferable text,
                                    @NotNull SelectionType type, char register, boolean isDelete) {
     // Null register doesn't get saved
     if (lastRegister == '_') return true;
@@ -159,23 +191,23 @@ public class RegisterGroup {
       end = t;
     }
 
-    if (type == SelectionType.LINE_WISE && text.length() > 0 && text.charAt(text.length() - 1) != '\n') {
-      text = text + '\n';
-    }
+    //if (type == SelectionType.LINE_WISE && text.length() > 0 && text.charAt(text.length() - 1) != '\n') {
+    //  text = text + '\n';
+    //}
 
     // If this is an uppercase register, we need to append the text to the corresponding lowercase register
     if (Character.isUpperCase(register)) {
       char lreg = Character.toLowerCase(register);
       Register r = registers.get(new Character(lreg));
       // Append the text if the lowercase register existed
-      if (r != null) {
-        r.addText(text);
-      }
+      //if (r != null) {
+      //  r.addText(text);
+      //}
       // Set the text if the lowercase register didn't exist yet
-      else {
-        registers.put(lreg, new Register(lreg, type, text));
-        if (logger.isDebugEnabled()) logger.debug("register '" + register + "' contains: \"" + text + "\"");
-      }
+      //else {
+      //  registers.put(lreg, new Register(lreg, type, text));
+      //  if (logger.isDebugEnabled()) logger.debug("register '" + register + "' contains: \"" + text + "\"");
+      //}
     }
     else if (CLIPBOARD_REGISTERS.contains(register)) {
       ClipboardHandler.setClipboardText(text);
@@ -227,6 +259,64 @@ public class RegisterGroup {
     return true;
   }
 
+  public Transferable getTransferable(final Editor editor, Caret caret) {
+
+    final Project project = CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(editor.getComponent()));
+    final PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
+
+    final SelectionModel selectionModel = editor.getSelectionModel();
+    int offset = editor.getCaretModel().getOffset();
+    if (!selectionModel.hasSelection(true)) {
+      if (Registry.is(CopyAction.SKIP_COPY_AND_CUT_FOR_EMPTY_SELECTION_KEY)) {
+        return null;
+      }
+      editor.getCaretModel().runForEachCaret(new CaretAction() {
+        @Override
+        public void perform(Caret caret) {
+          selectionModel.selectLineAtCaret();
+        }
+      });
+      if (!selectionModel.hasSelection(true)) return null;
+      editor.getCaretModel().runForEachCaret(new CaretAction() {
+        @Override
+        public void perform(Caret caret) {
+          EditorActionUtil.moveCaretToLineStartIgnoringSoftWraps(editor);
+        }
+      });
+    }
+
+    PsiDocumentManager.getInstance(project).commitAllDocuments();
+
+    final int[] startOffsets = selectionModel.getBlockSelectionStarts();
+    final int[] endOffsets = selectionModel.getBlockSelectionEnds();
+
+    final List<TextBlockTransferableData> transferableDatas = new ArrayList<>();
+
+    //DumbService.getInstance(project).withAlternativeResolveEnabled(() -> {
+    //  for (CopyPastePostProcessor<? extends TextBlockTransferableData> processor : Extensions
+    //    .getExtensions(CopyPastePostProcessor.EP_NAME)) {
+    //    transferableDatas.addAll(processor.collectTransferableData(file, editor, startOffsets, endOffsets));
+    //  }
+    //});
+
+    String text = editor.getCaretModel().supportsMultipleCarets()
+                  ? EditorCopyPasteHelperImpl.getSelectedTextForClipboard(editor, transferableDatas)
+                  : selectionModel.getSelectedText();
+    String rawText = TextBlockTransferable.convertLineSeparators(text, "\n", transferableDatas);
+    String escapedText = null;
+    for (CopyPastePreProcessor processor : Extensions.getExtensions(CopyPastePreProcessor.EP_NAME)) {
+      escapedText = processor.preprocessOnCopy(file, startOffsets, endOffsets, rawText);
+      if (escapedText != null) {
+        break;
+      }
+    }
+    final Transferable transferable = new TextBlockTransferable(escapedText != null ? escapedText : rawText,
+                                                                transferableDatas,
+                                                                escapedText != null ? new RawText(rawText) : null);
+    caret.removeSelection();
+    editor.getCaretModel().moveToOffset(offset);
+    return transferable;
+  }
   private boolean isSmallDeletionSpecialCase(Editor editor) {
     Command currentCommand = CommandState.getInstance(editor).getCommand();
     if (currentCommand != null) {
@@ -360,6 +450,10 @@ public class RegisterGroup {
     final Element registersElement = new Element("registers");
     for (Character key : registers.keySet()) {
       final Register register = registers.get(key);
+      if(register == null) {
+        logger.info("register "+register+"   "+key);
+        continue;
+      }
       final Element registerElement = new Element("register");
       registerElement.setAttribute("name", String.valueOf(key));
       registerElement.setAttribute("type", Integer.toString(register.getType().getValue()));
@@ -402,7 +496,8 @@ public class RegisterGroup {
         if (textElement != null) {
           final String text = StringHelper.getSafeXmlText(textElement);
           if (text != null) {
-            register = new Register(key, type, text);
+            //register = new Register(key, type, text);
+            register = null;
           }
           else {
             register = null;
@@ -431,9 +526,17 @@ public class RegisterGroup {
 
   @Nullable
   private Register refreshClipboardRegister(char r) {
-    final String text = ClipboardHandler.getClipboardText();
+    final Transferable text = ClipboardHandler.getClipboardText();
     if (text != null) {
-      return new Register(r, guessSelectionType(text), text);
+      try {
+        return new Register(r, guessSelectionType((String)text.getTransferData((DataFlavor.stringFlavor))), text);
+      }
+      catch (UnsupportedFlavorException e) {
+        e.printStackTrace();
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
     }
     return null;
   }

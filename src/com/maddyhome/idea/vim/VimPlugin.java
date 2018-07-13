@@ -20,7 +20,11 @@ package com.maddyhome.idea.vim;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.notification.*;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationDisplayType;
+import com.intellij.notification.NotificationListener;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
@@ -78,9 +82,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @version 0.1
  */
-@State(
-  name = "VimSettings",
-  storages = {@Storage(file = "$APP_CONFIG$/vim_settings.xml")})
+@State(name = "VimSettings", storages = {@Storage(file = "$APP_CONFIG$/vim_settings.xml")})
 public class VimPlugin implements ApplicationComponent, PersistentStateComponent<Element> {
   private static final String IDEAVIM_COMPONENT_NAME = "VimPlugin";
   private static final String IDEAVIM_PLUGIN_ID = "IdeaVIM";
@@ -94,6 +96,10 @@ public class VimPlugin implements ApplicationComponent, PersistentStateComponent
 
   private int previousStateVersion = 0;
   private String previousKeyMap = "";
+
+  public static void main(String[] args) {
+    System.out.println();
+  }
 
   // It is enabled by default to avoid any special configuration after plugin installation
   private boolean enabled = true;
@@ -419,34 +425,27 @@ public class VimPlugin implements ApplicationComponent, PersistentStateComponent
           keymap = manager.getKeymap(DefaultKeymap.getInstance().getDefaultKeymapName());
         }
         assert keymap != null : "Default keymap not found";
-        new Notification(
-          VimPlugin.IDEAVIM_STICKY_NOTIFICATION_ID,
-          VimPlugin.IDEAVIM_NOTIFICATION_TITLE,
-          String.format("IdeaVim plugin doesn't use the special \"Vim\" keymap any longer. " +
-                        "Switching to \"%s\" keymap.<br/><br/>" +
-                        "Now it is possible to set up:<br/>" +
-                        "<ul>" +
-                        "<li>Vim keys in your ~/.ideavimrc file using key mapping commands</li>" +
-                        "<li>IDE action shortcuts in \"File | Settings | Keymap\"</li>" +
-                        "<li>Vim or IDE handlers for conflicting shortcuts in <a href='#settings'>Vim Emulation</a> settings</li>" +
-                        "</ul>", keymap.getPresentableName()),
-          NotificationType.INFORMATION,
-          new NotificationListener.Adapter() {
-            @Override
-            protected void hyperlinkActivated(@NotNull Notification notification, @NotNull HyperlinkEvent e) {
-              ShowSettingsUtil.getInstance().editConfigurable((Project)null, new VimEmulationConfigurable());
-            }
-          }).notify(null);
+        new Notification(VimPlugin.IDEAVIM_STICKY_NOTIFICATION_ID, VimPlugin.IDEAVIM_NOTIFICATION_TITLE, String.format(
+          "IdeaVim plugin doesn't use the special \"Vim\" keymap any longer. " +
+          "Switching to \"%s\" keymap.<br/><br/>" +
+          "Now it is possible to set up:<br/>" +
+          "<ul>" +
+          "<li>Vim keys in your ~/.ideavimrc file using key mapping commands</li>" +
+          "<li>IDE action shortcuts in \"File | Settings | Keymap\"</li>" +
+          "<li>Vim or IDE handlers for conflicting shortcuts in <a href='#settings'>Vim Emulation</a> settings</li>" +
+          "</ul>", keymap.getPresentableName()), NotificationType.INFORMATION, new NotificationListener.Adapter() {
+          @Override
+          protected void hyperlinkActivated(@NotNull Notification notification, @NotNull HyperlinkEvent e) {
+            ShowSettingsUtil.getInstance().editConfigurable((Project)null, new VimEmulationConfigurable());
+          }
+        }).notify(null);
         manager.setActiveKeymap(keymap);
       }
       if (previousStateVersion > 0 && previousStateVersion < 4) {
-        new Notification(
-          VimPlugin.IDEAVIM_STICKY_NOTIFICATION_ID,
-          VimPlugin.IDEAVIM_NOTIFICATION_TITLE,
-          "The ~/.vimrc file is no longer read by default, use ~/.ideavimrc instead. You can read it from your " +
-          "~/.ideavimrc using this command:<br/><br/>" +
-          "<code>source ~/.vimrc</code>",
-          NotificationType.INFORMATION).notify(null);
+        new Notification(VimPlugin.IDEAVIM_STICKY_NOTIFICATION_ID, VimPlugin.IDEAVIM_NOTIFICATION_TITLE,
+                         "The ~/.vimrc file is no longer read by default, use ~/.ideavimrc instead. You can read it from your " +
+                         "~/.ideavimrc using this command:<br/><br/>" +
+                         "<code>source ~/.vimrc</code>", NotificationType.INFORMATION).notify(null);
       }
     }
   }
@@ -474,7 +473,7 @@ public class VimPlugin implements ApplicationComponent, PersistentStateComponent
 
   /**
    * Reports statistics about installed IdeaVim and enabled Vim emulation.
-   *
+   * <p>
    * See https://github.com/go-lang-plugin-org/go-lang-idea-plugin/commit/5182ab4a1d01ad37f6786268a2fe5e908575a217
    */
   private void setupStatisticsReporter(@NotNull EventFacade eventFacade) {
@@ -484,8 +483,8 @@ public class VimPlugin implements ApplicationComponent, PersistentStateComponent
       public void editorCreated(@NotNull EditorFactoryEvent event) {
         final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
         final long lastUpdate = propertiesComponent.getOrInitLong(IDEAVIM_STATISTICS_TIMESTAMP_KEY, 0);
-        final boolean outOfDate = lastUpdate == 0 ||
-                                  System.currentTimeMillis() - lastUpdate > TimeUnit.DAYS.toMillis(1);
+        final boolean outOfDate =
+          lastUpdate == 0 || System.currentTimeMillis() - lastUpdate > TimeUnit.DAYS.toMillis(1);
         if (outOfDate && isEnabled()) {
           application.executeOnPooledThread(new Runnable() {
             @Override
@@ -494,32 +493,35 @@ public class VimPlugin implements ApplicationComponent, PersistentStateComponent
                 final String buildNumber = ApplicationInfo.getInstance().getBuild().asString();
                 final String pluginId = IDEAVIM_PLUGIN_ID;
                 final String version = URLEncoder.encode(getVersion(), CharsetToolkit.UTF8);
-                final String os = URLEncoder.encode(SystemInfo.OS_NAME + " " + SystemInfo.OS_VERSION,
-                                                    CharsetToolkit.UTF8);
+                final String os =
+                  URLEncoder.encode(SystemInfo.OS_NAME + " " + SystemInfo.OS_VERSION, CharsetToolkit.UTF8);
                 final String uid = UpdateChecker.getInstallationUID(PropertiesComponent.getInstance());
-                final String url =
-                  "https://plugins.jetbrains.com/plugins/list" +
-                  "?pluginId=" + pluginId +
-                  "&build=" + buildNumber +
-                  "&pluginVersion=" + version +
-                  "&os=" + os +
-                  "&uuid=" + uid;
-                PropertiesComponent.getInstance().setValue(IDEAVIM_STATISTICS_TIMESTAMP_KEY,
-                                                           String.valueOf(System.currentTimeMillis()));
+                final String url = "https://plugins.jetbrains.com/plugins/list" +
+                                   "?pluginId=" +
+                                   pluginId +
+                                   "&build=" +
+                                   buildNumber +
+                                   "&pluginVersion=" +
+                                   version +
+                                   "&os=" +
+                                   os +
+                                   "&uuid=" +
+                                   uid;
+                PropertiesComponent.getInstance()
+                  .setValue(IDEAVIM_STATISTICS_TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
                 HttpRequests.request(url).connect(new HttpRequests.RequestProcessor<Object>() {
-                    @Override
-                    public Object process(@NotNull HttpRequests.Request request) throws IOException {
-                      LOG.info("Sending statistics: " + url);
-                      try {
-                        JDOMUtil.load(request.getInputStream());
-                      }
-                      catch (JDOMException e) {
-                        LOG.warn(e);
-                      }
-                      return null;
+                  @Override
+                  public Object process(@NotNull HttpRequests.Request request) throws IOException {
+                    LOG.info("Sending statistics: " + url);
+                    try {
+                      JDOMUtil.load(request.getInputStream());
                     }
+                    catch (JDOMException e) {
+                      LOG.warn(e);
+                    }
+                    return null;
                   }
-                );
+                });
               }
               catch (IOException e) {
                 LOG.warn(e);

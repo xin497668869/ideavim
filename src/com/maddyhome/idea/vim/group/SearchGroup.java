@@ -56,6 +56,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.datatransfer.StringSelection;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
 import java.util.*;
@@ -74,7 +75,7 @@ public class SearchGroup {
   private void setLastPattern(@NotNull Editor editor, @NotNull String lastPattern) {
     this.lastPattern = lastPattern;
     VimPlugin.getRegister().storeTextInternal(editor, new TextRange(-1, -1),
-                                                                lastPattern, SelectionType.CHARACTER_WISE, '/', false);
+                                              new StringSelection(lastPattern), SelectionType.CHARACTER_WISE, '/', false);
 
     VimPlugin.getHistory().addEntry(HistoryGroup.SEARCH, lastPattern);
   }

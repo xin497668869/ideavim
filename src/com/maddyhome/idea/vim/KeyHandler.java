@@ -208,12 +208,12 @@ public class KeyHandler {
         if (lastWasBS && lastChar != 0 && Options.getInstance().isSet("digraph")) {
           char dig = VimPlugin.getDigraph().getDigraph(lastChar, key.getKeyChar());
           key = KeyStroke.getKeyStroke(dig);
+        }
 
-          // If we are in insert/replace mode send this key in for processing
-          if (editorState.getMode() == CommandState.Mode.INSERT || editorState.getMode() == CommandState.Mode.REPLACE) {
-            if (!VimPlugin.getChange().processKey(editor, context, key)) {
-              shouldRecord = false;
-            }
+        // If we are in insert/replace mode send this key in for processing
+        if (editorState.getMode() == CommandState.Mode.INSERT || editorState.getMode() == CommandState.Mode.REPLACE) {
+          if (!VimPlugin.getChange().processKey(editor, context, key)) {
+            shouldRecord = false;
           }
         }
         else if (editorState.getMappingMode() == MappingMode.CMD_LINE) {

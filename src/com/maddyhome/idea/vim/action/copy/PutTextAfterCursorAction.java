@@ -36,7 +36,7 @@ public class PutTextAfterCursorAction extends EditorAction {
 
   private static class Handler extends ChangeEditorActionHandler {
     public boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount, @Nullable Argument argument) {
-      return VimPlugin.getCopy().putTextAfterCursor(editor, context, count, true, false);
+      return VimPlugin.getCopy().putTextAfterCursor(editor, context, count, true, true);
     }
   }
 }

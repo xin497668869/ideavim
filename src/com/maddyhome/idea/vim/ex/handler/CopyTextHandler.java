@@ -48,7 +48,7 @@ public class CopyTextHandler extends CommandHandler {
 
     String text = EditorHelper.getText(editor, range.getStartOffset(), range.getEndOffset());
     VimPlugin.getCopy().putText(editor, context, offset, text, SelectionType.LINE_WISE, 1, true,
-                                                  false, CommandState.SubMode.NONE);
+                                false, CommandState.SubMode.NONE, null);
 
     return true;
   }

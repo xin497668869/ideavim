@@ -47,7 +47,7 @@
         <li><a href="http://youtrack.jetbrains.com/issues/VIM">Issue tracker</a>: feature requests and bug reports</li>
       </ul>
     ]]></description>
-  <version>SNAPSHOT</version>
+  <version>0.49</version>
   <vendor>JetBrains</vendor>
 
   <idea-version since-build="171.0"/>
@@ -68,6 +68,8 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <applicationConfigurable instance="com.maddyhome.idea.vim.ui.VimEmulationConfigurable"/>
+    <postStartupActivity
+        implementation="com.maddyhome.idea.vim.jpane.CommandStatueBar" />
   </extensions>
 
   <extensions defaultExtensionNs="IdeaVIM">

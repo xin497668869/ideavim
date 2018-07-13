@@ -42,6 +42,7 @@ public abstract class EditorActionHandlerBase extends EditorActionHandler {
     final CommandState state = CommandState.getInstance(editor);
     final Command cmd = state.getCommand();
 
+
     if (cmd == null || !execute(editor, context, cmd)) {
       VimPlugin.indicateError();
     }

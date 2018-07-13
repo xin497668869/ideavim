@@ -43,10 +43,12 @@ public class YankVisualAction extends VimCommandAction {
       protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
                                 @NotNull TextRange range) {
         final CommandState.SubMode subMode = CommandState.getInstance(editor).getSubMode();
+
         return VimPlugin.getCopy().yankRange(editor, range, SelectionType.fromSubMode(subMode), true);
       }
     });
   }
+
 
   @NotNull
   @Override

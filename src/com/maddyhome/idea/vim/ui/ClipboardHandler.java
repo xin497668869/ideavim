@@ -21,8 +21,9 @@ package com.maddyhome.idea.vim.ui;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
-import java.awt.datatransfer.*;
-import java.io.IOException;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 
 /**
  * This is a utility class for working with the system clipboard
@@ -34,28 +35,22 @@ public class ClipboardHandler {
    * @return The clipboard string or null if data isn't plain text
    */
   @Nullable
-  public static String getClipboardText() {
-    String res = null;
+  public static Transferable getClipboardText() {
     try {
       Clipboard board = Toolkit.getDefaultToolkit().getSystemClipboard();
       Transferable trans = board.getContents(null);
-      Object data = trans.getTransferData(DataFlavor.stringFlavor);
-
-      if (data != null) {
-        res = data.toString();
-      }
+      return trans;
+      //Object data = trans.getTransferData(DataFlavor.stringFlavor);
+      //
+      //if (data != null) {
+      //  res = data.toString();
+      //}
     }
     catch (HeadlessException e) {
       // ignore
     }
-    catch (UnsupportedFlavorException e) {
-      // ignore
-    }
-    catch (IOException e) {
-      // ignore
-    }
 
-    return res;
+    return null;
   }
 
   /**
@@ -63,11 +58,11 @@ public class ClipboardHandler {
    *
    * @param text The text to add to the clipboard
    */
-  public static void setClipboardText(String text) {
+  public static void setClipboardText(Transferable contents) {
     try {
       Clipboard board = Toolkit.getDefaultToolkit().getSystemClipboard();
-      StringSelection data = new StringSelection(text);
-      board.setContents(data, null);
+      board.setContents(contents, null);
+      //StringSelection data = new StringSelection(text);
     }
     catch (HeadlessException e) {
       // ignore
