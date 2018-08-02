@@ -6,9 +6,7 @@ import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.editor.event.SelectionEvent;
 import com.intellij.openapi.editor.event.SelectionListener;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
-import com.intellij.openapi.wm.WindowManager;
 import com.intellij.openapi.wm.impl.status.EditorBasedWidget;
 import com.intellij.util.Consumer;
 import org.jetbrains.annotations.NotNull;
@@ -30,18 +28,18 @@ public class VimCommandStatusBarWidget extends EditorBasedWidget
 
   public static void cleanVimCommandStatusBar(Project project) {
 
-    StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
-    VimCommandStatusBarWidget statusBarWidget = (VimCommandStatusBarWidget)statusBar.getWidget(VIM_COMMAND);
-    statusBarWidget.setText("");
-    statusBar.updateWidget(VIM_COMMAND);
+    //StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
+    //VimCommandStatusBarWidget statusBarWidget = (VimCommandStatusBarWidget)statusBar.getWidget(VIM_COMMAND);
+    //statusBarWidget.setText("");
+    //statusBar.updateWidget(VIM_COMMAND);
   }
 
   public static void updateVimCommandStatusBar(Project project, char c) {
 
-    StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
-    VimCommandStatusBarWidget statusBarWidget = (VimCommandStatusBarWidget)statusBar.getWidget(VIM_COMMAND);
-    statusBarWidget.setText(statusBarWidget.getText() + c);
-    statusBar.updateWidget(VIM_COMMAND);
+    //StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
+    //VimCommandStatusBarWidget statusBarWidget = (VimCommandStatusBarWidget)statusBar.getWidget(VIM_COMMAND);
+    //statusBarWidget.setText(statusBarWidget.getText() + c);
+    //statusBar.updateWidget(VIM_COMMAND);
   }
 
   protected VimCommandStatusBarWidget(@NotNull Project project) {

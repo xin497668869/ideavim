@@ -77,6 +77,7 @@ import java.util.StringTokenizer;
  * This group works with command associated with copying and pasting text
  */
 public class CopyGroup {
+
   /**
    * Creates the group
    */
@@ -576,8 +577,8 @@ public class CopyGroup {
       }
       editor.getSelectionModel().removeSelection();
     }
-    editor.getCaretModel().moveToOffset(offset);
 
+    editor.getCaretModel().moveToOffset(offset);
     final CodeInsightSettings settings = CodeInsightSettings.getInstance();
 
     final Map<CopyPastePostProcessor, List<? extends TextBlockTransferableData>> extraData = new HashMap<>();
@@ -629,7 +630,8 @@ public class CopyGroup {
     //editorStartNewLine.getHandler().execute(editor,editor.getCaretModel().getCurrentCaret(),null);
     if (cursorAfter &&
         document.getCharsSequence().length() > offset + 1 &&
-        document.getCharsSequence().charAt(offset) != '\n') {
+        document.getCharsSequence().charAt(offset) != '\n'
+       && !type.equals(SelectionType.LINE_WISE)) {
       caretModel.moveToOffset(offset + 1);
     }
     EditorModificationUtil.insertStringAtCaret(editor, _text, false, true, type);
@@ -655,7 +657,8 @@ public class CopyGroup {
       CharArrayUtil.shiftForward(document.getCharsSequence(), bounds.getStartOffset(), " \n\t") >=
       bounds.getEndOffset();
 
-    VirtualFile virtualFile = file.getVirtualFile();
+    VirtualFile virtualFile = file.getVirtualFile()
+      ;
     if (!pastedTextContainsWhiteSpacesOnly &&
         (virtualFile == null || !SingleRootFileViewProvider.isTooLargeForIntelligence(virtualFile))) {
       final int indentOptions1 = indentOptions;

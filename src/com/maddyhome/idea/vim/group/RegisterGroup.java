@@ -33,7 +33,6 @@ import com.intellij.openapi.editor.RawText;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.editor.actions.CopyAction;
 import com.intellij.openapi.editor.actions.EditorActionUtil;
-import com.intellij.openapi.editor.impl.EditorCopyPasteHelperImpl;
 import com.intellij.openapi.extensions.Extensions;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.registry.Registry;
@@ -85,7 +84,8 @@ import java.util.List;
  * This group works with command associated with copying and pasting text
  */
 public class RegisterGroup {
-  private static final String WRITABLE_REGISTERS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-*+_/\"";
+  private static final String WRITABLE_REGISTERS =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-*+_/\"";
   private static final String READONLY_REGISTERS = ":.%#=/";
   private static final String RECORDABLE_REGISTER = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   private static final String PLAYBACK_REGISTER = RECORDABLE_REGISTER + "\".*+";
@@ -161,7 +161,9 @@ public class RegisterGroup {
    * @param isDelete is from a delete
    * @return true if able to store the text into the register, false if not
    */
-  public boolean storeText(@NotNull Editor editor, @NotNull TextRange range, @NotNull SelectionType type,
+  public boolean storeText(@NotNull Editor editor,
+                           @NotNull TextRange range,
+                           @NotNull SelectionType type,
                            boolean isDelete) {
     if (isRegisterWritable()) {
       //String text = EditorHelper.getText(editor, range);
@@ -170,15 +172,19 @@ public class RegisterGroup {
       //if(true) {
       //  return true;
       //}
-      Transferable transferable = getTransferable(editor, editor.getCaretModel().getCurrentCaret());
+      Transferable transferable = getTransferable(editor, range, type, editor.getCaretModel().getCurrentCaret());
       return storeTextInternal(editor, range, transferable, type, lastRegister, isDelete);
     }
 
     return false;
   }
 
-  public boolean storeTextInternal(@NotNull Editor editor, @NotNull TextRange range, @NotNull Transferable text,
-                                   @NotNull SelectionType type, char register, boolean isDelete) {
+  public boolean storeTextInternal(@NotNull Editor editor,
+                                   @NotNull TextRange range,
+                                   @NotNull Transferable text,
+                                   @NotNull SelectionType type,
+                                   char register,
+                                   boolean isDelete) {
     // Null register doesn't get saved
     if (lastRegister == '_') return true;
 
@@ -226,7 +232,8 @@ public class RegisterGroup {
 
     if (isDelete) {
       boolean smallInlineDeletion = type == SelectionType.CHARACTER_WISE &&
-                       editor.offsetToLogicalPosition(start).line == editor.offsetToLogicalPosition(end).line;
+                                    editor.offsetToLogicalPosition(start).line ==
+                                    editor.offsetToLogicalPosition(end).line;
 
       // Deletes go into numbered registers only if text is smaller than a line, register is used or it's a special case
       if (!smallInlineDeletion || register != defaultRegister || isSmallDeletionSpecialCase(editor)) {
@@ -259,9 +266,10 @@ public class RegisterGroup {
     return true;
   }
 
-  public Transferable getTransferable(final Editor editor, Caret caret) {
+  public Transferable getTransferable(final Editor editor, TextRange range, SelectionType type, Caret caret) {
 
-    final Project project = CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(editor.getComponent()));
+    final Project project =
+      CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(editor.getComponent()));
     final PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
 
     final SelectionModel selectionModel = editor.getSelectionModel();
@@ -299,9 +307,11 @@ public class RegisterGroup {
     //  }
     //});
 
-    String text = editor.getCaretModel().supportsMultipleCarets()
-                  ? EditorCopyPasteHelperImpl.getSelectedTextForClipboard(editor, transferableDatas)
-                  : selectionModel.getSelectedText();
+    String text = editor.getDocument()
+      .getText(new com.intellij.openapi.util.TextRange(range.getStartOffset(), range.getEndOffset()));
+    //String text = editor.getCaretModel().supportsMultipleCarets()
+    //              ? EditorCopyPasteHelperImpl.getSelectedTextForClipboard(editor, transferableDatas)
+    //              : editor.getDocument() .getText(new com.intellij.openapi.util.TextRange(range.getStartOffset(),range.getEndOffset()));
     String rawText = TextBlockTransferable.convertLineSeparators(text, "\n", transferableDatas);
     String escapedText = null;
     for (CopyPastePreProcessor processor : Extensions.getExtensions(CopyPastePreProcessor.EP_NAME)) {
@@ -310,13 +320,14 @@ public class RegisterGroup {
         break;
       }
     }
-    final Transferable transferable = new TextBlockTransferable(escapedText != null ? escapedText : rawText,
-                                                                transferableDatas,
-                                                                escapedText != null ? new RawText(rawText) : null);
+    final Transferable transferable =
+      new TextBlockTransferable(escapedText != null ? escapedText : rawText, transferableDatas,
+                                escapedText != null ? new RawText(rawText) : null);
     caret.removeSelection();
     editor.getCaretModel().moveToOffset(offset);
     return transferable;
   }
+
   private boolean isSmallDeletionSpecialCase(Editor editor) {
     Command currentCommand = CommandState.getInstance(editor).getCommand();
     if (currentCommand != null) {
@@ -325,11 +336,16 @@ public class RegisterGroup {
         Command motionCommand = argument.getMotion();
         if (motionCommand != null) {
           AnAction action = motionCommand.getAction();
-          return action instanceof MotionPercentOrMatchAction || action instanceof MotionSentencePreviousStartAction
-            || action instanceof MotionSentenceNextStartAction || action instanceof MotionGotoFileMarkAction
-            || action instanceof SearchEntryFwdAction || action instanceof SearchEntryRevAction
-            || action instanceof SearchAgainNextAction || action instanceof SearchAgainPreviousAction
-            || action instanceof MotionParagraphNextAction || action instanceof MotionParagraphPreviousAction;
+          return action instanceof MotionPercentOrMatchAction ||
+                 action instanceof MotionSentencePreviousStartAction ||
+                 action instanceof MotionSentenceNextStartAction ||
+                 action instanceof MotionGotoFileMarkAction ||
+                 action instanceof SearchEntryFwdAction ||
+                 action instanceof SearchEntryRevAction ||
+                 action instanceof SearchAgainNextAction ||
+                 action instanceof SearchAgainPreviousAction ||
+                 action instanceof MotionParagraphNextAction ||
+                 action instanceof MotionParagraphPreviousAction;
         }
       }
     }
@@ -450,8 +466,8 @@ public class RegisterGroup {
     final Element registersElement = new Element("registers");
     for (Character key : registers.keySet()) {
       final Register register = registers.get(key);
-      if(register == null) {
-        logger.info("register "+register+"   "+key);
+      if (register == null) {
+        logger.info("register " + register + "   " + key);
         continue;
       }
       final Element registerElement = new Element("register");
@@ -513,9 +529,8 @@ public class RegisterGroup {
             final int modifiers = Integer.parseInt(keyElement.getAttributeValue("mods"));
             final char c = (char)Integer.parseInt(keyElement.getAttributeValue("char"));
             //noinspection MagicConstant
-            strokes.add(c == KeyEvent.CHAR_UNDEFINED ?
-                        KeyStroke.getKeyStroke(code, modifiers) :
-                        KeyStroke.getKeyStroke(c));
+            strokes
+              .add(c == KeyEvent.CHAR_UNDEFINED ? KeyStroke.getKeyStroke(code, modifiers) : KeyStroke.getKeyStroke(c));
           }
           register = new Register(key, type, strokes);
         }
