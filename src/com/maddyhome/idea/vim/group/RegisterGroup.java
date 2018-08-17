@@ -328,6 +328,16 @@ public class RegisterGroup {
     return transferable;
   }
 
+  /**
+   * Get the last register selected by the user
+   *
+   * @return The register, null if no such register
+   */
+  @Nullable
+  public Register getLastRegister() {
+    return getRegister(lastRegister);
+  }
+
   private boolean isSmallDeletionSpecialCase(Editor editor) {
     Command currentCommand = CommandState.getInstance(editor).getCommand();
     if (currentCommand != null) {
@@ -351,16 +361,6 @@ public class RegisterGroup {
     }
 
     return false;
-  }
-
-  /**
-   * Get the last register selected by the user
-   *
-   * @return The register, null if no such register
-   */
-  @Nullable
-  public Register getLastRegister() {
-    return getRegister(lastRegister);
   }
 
   @Nullable

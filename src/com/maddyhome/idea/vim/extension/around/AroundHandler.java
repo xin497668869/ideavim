@@ -23,10 +23,10 @@ public class AroundHandler implements VimExtensionHandler {
       if (CommandState.getInstance(editor).getMode() == CommandState.Mode.INSERT) {
         VimExtensionFacade.executeNormal(parseKeys("<Esc>"), editor);
       }
-      VimPlugin.getMotion().setVisualMode(editor, CommandState.SubMode.SINGLE_COMMAND);
     }
     EditorAction editorSelectWord = (EditorAction)ActionManager.getInstance().getAction("EditorSelectWord");
     editorSelectWord.getHandler().execute(editor, context);
+    VimPlugin.getMotion().setVisualMode(editor, CommandState.SubMode.VISUAL_CHARACTER);
   }
 
 }

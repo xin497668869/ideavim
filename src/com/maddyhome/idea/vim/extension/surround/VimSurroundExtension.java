@@ -47,7 +47,7 @@ import static com.maddyhome.idea.vim.helper.StringHelper.parseKeys;
 
 /**
  * Port of vim-surround.
- *
+ * <p>
  * See https://github.com/tpope/vim-surround
  *
  * @author dhleong
@@ -57,19 +57,12 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
 
   private static final char REGISTER = '"';
 
-  private static final Map<Character, Pair<String, String>> SURROUND_PAIRS = ImmutableMap.<Character, Pair<String, String>>builder()
-    .put('b', Pair.create("(", ")"))
-    .put('(', Pair.create("( ", " )"))
-    .put(')', Pair.create("(", ")"))
-    .put('B', Pair.create("{", "}"))
-    .put('{', Pair.create("{ ", " }"))
-    .put('}', Pair.create("{", "}"))
-    .put('r', Pair.create("[", "]"))
-    .put('[', Pair.create("[ ", " ]"))
-    .put(']', Pair.create("[", "]"))
-    .put('a', Pair.create("<", ">"))
-    .put('>', Pair.create("<", ">"))
-    .build();
+  private static final Map<Character, Pair<String, String>> SURROUND_PAIRS =
+    ImmutableMap.<Character, Pair<String, String>>builder().put('b', Pair.create("(", ")"))
+      .put('(', Pair.create("( ", " )")).put(')', Pair.create("(", ")")).put('B', Pair.create("{", "}"))
+      .put('{', Pair.create("{ ", " }")).put('}', Pair.create("{", "}")).put('r', Pair.create("[", "]"))
+      .put('[', Pair.create("[ ", " ]")).put(']', Pair.create("[", "]")).put('a', Pair.create("<", ">"))
+      .put('>', Pair.create("<", ">")).build();
 
   @NotNull
   @Override
@@ -237,9 +230,12 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
 
     private static char pick(char charFrom) {
       switch (charFrom) {
-        case 'a': return '>';
-        case 'r': return ']';
-        default: return charFrom;
+        case 'a':
+          return '>';
+        case 'r':
+          return ']';
+        default:
+          return charFrom;
       }
     }
   }
@@ -274,8 +270,8 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
       }
       final ChangeGroup change = VimPlugin.getChange();
       final String leftSurround = pair.getFirst();
+      change.insertText(editor, range.getEndOffset() + leftSurround.length() - 1, pair.getSecond());
       change.insertText(editor, range.getStartOffset(), leftSurround);
-      change.insertText(editor, range.getEndOffset() + leftSurround.length(), pair.getSecond());
 
       // Jump back to start
       executeNormal(parseKeys("`["), editor);

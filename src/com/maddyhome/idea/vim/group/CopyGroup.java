@@ -61,6 +61,7 @@ import com.maddyhome.idea.vim.common.Register;
 import com.maddyhome.idea.vim.common.TextRange;
 import com.maddyhome.idea.vim.helper.EditorHelper;
 import com.maddyhome.idea.vim.utils.EditorModificationUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,6 +69,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -340,7 +342,10 @@ public class CopyGroup {
         if (reg.getTransferable() != null) {
           paste(editor, reg.getType(), reg.getTransferable(), indent, cursorAfter, offset);
           return;
-        }
+        }else if(StringUtils.isNotEmpty(reg.getText())){
+          Transferable transferable = new TextBlockTransferable(reg.getText(), Collections.emptyList(),null);
+          paste(editor, reg.getType(), transferable, indent, cursorAfter, offset);
+       }
         insertCnt += text.length();
         endOffset += text.length();
       }
