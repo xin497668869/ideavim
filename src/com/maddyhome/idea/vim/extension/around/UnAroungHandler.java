@@ -18,6 +18,9 @@ public class UnAroungHandler implements VimExtensionHandler {
   public void execute(@NotNull Editor editor, @NotNull DataContext context) {
     EditorAction editorUnSelectWord = (EditorAction)ActionManager.getInstance().getAction("EditorUnSelectWord");
     editorUnSelectWord.getHandler().execute(editor,context);
-    VimPlugin.getMotion().setVisualMode(editor, CommandState.SubMode.VISUAL_CHARACTER);
+
+    if(CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {
+      VimPlugin.getMotion().setVisualMode(editor, CommandState.SubMode.VISUAL_CHARACTER);
+    }
   }
 }

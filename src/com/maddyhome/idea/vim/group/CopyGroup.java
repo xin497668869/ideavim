@@ -309,7 +309,7 @@ public class CopyGroup {
   public void putText(@NotNull Editor editor,
                       @NotNull DataContext context,
                       int offset,
-                      @NotNull String text,
+                      @NotNull final String text,
                       @NotNull SelectionType type,
                       int count,
                       boolean indent,
@@ -331,9 +331,6 @@ public class CopyGroup {
       indent = false;
     }
 
-    if (type == SelectionType.LINE_WISE && text.length() > 0 && text.charAt(text.length() - 1) != '\n') {
-      text = text + '\n';
-    }
 
     int insertCnt = 0;
     int endOffset = offset;
@@ -342,10 +339,11 @@ public class CopyGroup {
         if (reg.getTransferable() != null) {
           paste(editor, reg.getType(), reg.getTransferable(), indent, cursorAfter, offset);
           return;
-        }else if(StringUtils.isNotEmpty(reg.getText())){
-          Transferable transferable = new TextBlockTransferable(reg.getText(), Collections.emptyList(),null);
+        }
+        else if (StringUtils.isNotEmpty(reg.getText())) {
+          Transferable transferable = new TextBlockTransferable(reg.getText(), Collections.emptyList(), null);
           paste(editor, reg.getType(), transferable, indent, cursorAfter, offset);
-       }
+        }
         insertCnt += text.length();
         endOffset += text.length();
       }
@@ -630,15 +628,20 @@ public class CopyGroup {
       indentOptions = CodeInsightSettings.INDENT_BLOCK;
     }
 
-    final String _text = text;
     //EditorAction editorStartNewLine = (EditorAction)ActionManager.getInstance().getAction("EditorStartNewLine");
     //editorStartNewLine.getHandler().execute(editor,editor.getCaretModel().getCurrentCaret(),null);
     if (cursorAfter &&
         document.getCharsSequence().length() > offset + 1 &&
-        document.getCharsSequence().charAt(offset) != '\n'
-       && !type.equals(SelectionType.LINE_WISE)) {
+        document.getCharsSequence().charAt(offset) != '\n' &&
+        !type.equals(SelectionType.LINE_WISE)) {
       caretModel.moveToOffset(offset + 1);
     }
+    if (type == SelectionType.LINE_WISE &&
+        text.length() > 0 &&
+        editor.getCaretModel().getLogicalPosition().line + 1 < editor.getDocument().getLineCount()) {
+      text = text + '\n';
+    }
+    final String _text = text;
     EditorModificationUtil.insertStringAtCaret(editor, _text, false, true, type);
     caretModel.moveToOffset(offset);
 
@@ -662,8 +665,7 @@ public class CopyGroup {
       CharArrayUtil.shiftForward(document.getCharsSequence(), bounds.getStartOffset(), " \n\t") >=
       bounds.getEndOffset();
 
-    VirtualFile virtualFile = file.getVirtualFile()
-      ;
+    VirtualFile virtualFile = file.getVirtualFile();
     if (!pastedTextContainsWhiteSpacesOnly &&
         (virtualFile == null || !SingleRootFileViewProvider.isTooLargeForIntelligence(virtualFile))) {
       final int indentOptions1 = indentOptions;
@@ -693,8 +695,16 @@ public class CopyGroup {
             break;
 
           case CodeInsightSettings.REFORMAT_BLOCK:
-            indentEachLine(project, editor, bounds.getStartOffset(),
-                           bounds.getEndOffset()); // this is needed for example when inserting a comment before method
+            //indentEachLine(project, editor, bounds.getStartOffset(),
+            //               bounds.getEndOffset()); // this is needed for example when inserting a comment before method
+            if (type == SelectionType.LINE_WISE) {
+              editor.getCaretModel()
+                .moveToOffset(CharArrayUtil.shiftForward(editor.getDocument().getCharsSequence(), finalOffset, " \t"));
+            }
+            else {
+              editor.getCaretModel().moveToOffset(finalOffset + finalText.length());
+            }
+            indentEachLine(project, editor, bounds.getStartOffset(), bounds.getEndOffset());
             reformatBlock(project, editor, bounds.getStartOffset(), bounds.getEndOffset());
 
             break;

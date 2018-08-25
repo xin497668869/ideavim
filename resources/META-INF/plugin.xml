@@ -70,7 +70,9 @@
     <applicationConfigurable instance="com.maddyhome.idea.vim.ui.VimEmulationConfigurable"/>
     <postStartupActivity
         implementation="com.maddyhome.idea.vim.jpane.CommandStatueBar" />
-  </extensions>
+
+    <projectService serviceImplementation="com.xin.bookmarks.BookmarkManager"/>
+ </extensions>
 
   <extensions defaultExtensionNs="IdeaVIM">
     <vimExtension implementation="com.maddyhome.idea.vim.extension.surround.VimSurroundExtension"/>
@@ -363,5 +365,48 @@
     <!-- Keys -->
     <action id="VimShortcutKeyAction" class="com.maddyhome.idea.vim.action.VimShortcutKeyAction" text="Shortcuts"/>
     <action id="VimOperatorAction" class="com.maddyhome.idea.vim.action.change.OperatorAction" text="Operator"/>
+
+    <!-- Bookmas -->
+    <group id="myEditBookmarksGroup" popup="true">
+      <action id="myToggleBookmark" class="com.xin.bookmarks.actions.ToggleBookmarkAction"/>
+      <action id="myToggleBookmarkWithMnemonic" class="com.xin.bookmarks.actions.ToggleBookmarkWithMnemonicAction"/>
+      <action id="myShowBookmarks" class="com.xin.bookmarks.actions.BookmarksAction"/>
+      <action id="myGotoNextBookmark" class="com.xin.bookmarks.actions.NextBookmarkAction"/>
+      <action id="myGotoPreviousBookmark" class="com.xin.bookmarks.actions.PreviousBookmarkAction"/>
+      <separator/>
+
+      <add-to-group group-id="GoToMenu" anchor="after" relative-to-action="JumpToNextChange"/>
+    </group>
+
+    <group id="myBookmarks" text="myBookmarks">
+      <reference ref="myToggleBookmark"/>
+      <reference ref="myShowBookmarks"/>
+      <reference ref="myGotoNextBookmark"/>
+      <reference ref="myGotoPreviousBookmark"/>
+
+      <action id="myGotoBookmark0" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark0Action"/>
+      <action id="myGotoBookmark1" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark1Action"/>
+      <action id="myGotoBookmark2" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark2Action"/>
+      <action id="myGotoBookmark3" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark3Action"/>
+      <action id="myGotoBookmark4" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark4Action"/>
+      <action id="myGotoBookmark5" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark5Action"/>
+      <action id="myGotoBookmark6" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark6Action"/>
+      <action id="myGotoBookmark7" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark7Action"/>
+      <action id="myGotoBookmark8" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark8Action"/>
+      <action id="myGotoBookmark9" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark9Action"/>
+
+      <action id="myToggleBookmark0" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark0Action"/>
+      <action id="myToggleBookmark1" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark1Action"/>
+      <action id="myToggleBookmark2" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark2Action"/>
+      <action id="myToggleBookmark3" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark3Action"/>
+      <action id="myToggleBookmark4" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark4Action"/>
+      <action id="myToggleBookmark5" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark5Action"/>
+      <action id="myToggleBookmark6" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark6Action"/>
+      <action id="myToggleBookmark7" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark7Action"/>
+      <action id="myToggleBookmark8" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark8Action"/>
+      <action id="myToggleBookmark9" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark9Action"/>
+
+      <add-to-group group-id="Other.KeymapGroup"/>
+    </group>
   </actions>
 </idea-plugin>

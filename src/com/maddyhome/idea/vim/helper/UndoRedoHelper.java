@@ -20,16 +20,10 @@ package com.maddyhome.idea.vim.helper;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.command.impl.UndoManagerImpl;
-import com.intellij.openapi.command.undo.UndoManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collection;
 
 /**
  * @author oleg
@@ -42,41 +36,12 @@ public class UndoRedoHelper {
     final com.intellij.openapi.command.undo.UndoManager undoManager =
       com.intellij.openapi.command.undo.UndoManager.getInstance(project);
     if (fileEditor != null && undoManager.isUndoAvailable(fileEditor)) {
-      Object lastUndoStack1 = getLastUndoStack(editor, undoManager,fileEditor);
       undoManager.undo(fileEditor);
-      Object lastUndoStack2 = getLastUndoStack(editor, undoManager, fileEditor);
-      if (lastUndoStack1 == lastUndoStack2) {
-        //undoManager.undo(fileEditor);
-      }
-      editor.getCaretModel().moveToOffset(editor.getSelectionModel().getSelectionStart());
-      editor.getSelectionModel().removeSelection();
       return true;
     }
     return false;
   }
 
-  private static Object getLastUndoStack(Editor editor, UndoManager undoManager, FileEditor fileEditor) {
-    try {
-      Method getStackHolder = UndoManagerImpl.class.getDeclaredMethod("getStackHolder",boolean.class);
-      getStackHolder.setAccessible(true);
-      Object getUndoStacksHolder = getStackHolder.invoke(undoManager, true);
-      Method getLastAction = getUndoStacksHolder.getClass().getDeclaredMethod("getLastAction", Collection.class);
-      getLastAction.setAccessible(true);
-      Method getDocumentReferences = UndoManagerImpl.class.getDeclaredMethod("getDocumentReferences",FileEditor.class);
-      getDocumentReferences.setAccessible(true);
-
-      return getLastAction.invoke(getUndoStacksHolder, getDocumentReferences.invoke(editor,fileEditor));
-    }
-    catch (NoSuchMethodException e) {
-      e.printStackTrace();
-    }
-    catch (IllegalAccessException e) {
-      e.printStackTrace();
-    }
-    catch (InvocationTargetException e) {
-    }
-    return null;
-  }
 
   public static boolean redo(@NotNull final DataContext context) {
     final Project project = PlatformDataKeys.PROJECT.getData(context);

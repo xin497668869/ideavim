@@ -74,8 +74,7 @@ public class EditorModificationUtil {
                                         boolean toMoveCaret,
                                         int caretShift,
                                         SelectionType type) {
-    int result = insertStringAtCaretNoScrolling(editor, s, toProcessOverwriteMode, toMoveCaret, caretShift, type);
-    return result;
+    return insertStringAtCaretNoScrolling(editor, s, toProcessOverwriteMode, toMoveCaret, caretShift, type);
   }
 
   private static int insertStringAtCaretNoScrolling(Editor editor,

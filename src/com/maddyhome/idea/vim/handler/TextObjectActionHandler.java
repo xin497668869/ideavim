@@ -39,7 +39,7 @@ public abstract class TextObjectActionHandler extends EditorActionHandlerBase {
         return false;
       }
 
-      TextRange vr = VimPlugin.getMotion().getRawVisualRange();
+      TextRange vr = VimPlugin.getMotion().getRawVisualRange(editor);
 
       boolean block = (cmd.getFlags() & Command.FLAG_TEXT_BLOCK) != 0;
       int newstart = block || vr.getEndOffset() >= vr.getStartOffset() ? range.getStartOffset() : range.getEndOffset();
