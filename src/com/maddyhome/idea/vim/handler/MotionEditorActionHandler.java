@@ -42,10 +42,13 @@ public abstract class MotionEditorActionHandler extends EditorActionHandlerBase 
       if ((cmd.getFlags() & Command.FLAG_SAVE_JUMP) != 0) {
         VimPlugin.getMark().saveJumpLocation(editor);
       }
-      if (!CommandState.inInsertMode(editor) && !CommandState.inRepeatMode(editor) &&
+
+      if (!CommandState.inInsertMode(editor) &&
+          !CommandState.inRepeatMode(editor) &&
           !CommandState.inVisualCharacterMode(editor)) {
         offset = EditorHelper.normalizeOffset(editor, offset, false);
       }
+
       MotionGroup.moveCaret(editor, offset);
       postMove(editor, context, cmd);
 

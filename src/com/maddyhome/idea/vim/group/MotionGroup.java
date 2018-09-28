@@ -19,6 +19,9 @@ package com.maddyhome.idea.vim.group;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.CommandEvent;
+import com.intellij.openapi.command.CommandListener;
+import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -37,6 +40,7 @@ import com.intellij.openapi.editor.event.SelectionListener;
 import com.intellij.openapi.editor.ex.DocumentEx;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerAdapter;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.TextEditor;
@@ -76,6 +80,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.maddyhome.idea.vim.group.ChangeGroup.resetCursor;
+
 /**
  * This handles all motion related commands and marks
  */
@@ -89,7 +95,37 @@ public class MotionGroup {
   /**
    * Create the group
    */
-  public MotionGroup() {
+  public MotionGroup() { //防止黏贴的时候出现异常
+    CommandProcessor.getInstance().addCommandListener(new CommandListener() {
+      @Override
+      public void commandStarted(CommandEvent event) {
+        if ("Paste".equals(event.getCommandName())) {
+          Editor selectedTextEditor = FileEditorManager.getInstance(event.getProject()).getSelectedTextEditor();
+          if (selectedTextEditor != null &&
+              CommandState.getInstance(selectedTextEditor).getMode() != CommandState.Mode.INSERT) {
+            if (selectedTextEditor.getCaretModel().getOffset() <
+                selectedTextEditor.getCaretModel().getVisualLineEnd() - 1) {
+              selectedTextEditor.getCaretModel().moveToOffset(selectedTextEditor.getCaretModel().getOffset() + 1);
+            }
+          }
+        }
+      }
+
+      @Override
+      public void commandFinished(CommandEvent event) {
+        if ("Paste".equals(event.getCommandName())) {
+          Editor selectedTextEditor = FileEditorManager.getInstance(event.getProject()).getSelectedTextEditor();
+          if (selectedTextEditor != null) {
+            exitVisual(selectedTextEditor);
+            KeyHandler.getInstance().reset(selectedTextEditor);
+          }
+        }
+        else if ("Copy".equals(event.getCommandName())) {
+          Editor selectedTextEditor = FileEditorManager.getInstance(event.getProject()).getSelectedTextEditor();
+          exitVisual(selectedTextEditor);
+        }
+      }
+    });
     EventFacade.getInstance().addEditorFactoryListener(new EditorFactoryAdapter() {
       public void editorCreated(@NotNull EditorFactoryEvent event) {
         final Editor editor = event.getEditor();
@@ -232,7 +268,8 @@ public class MotionGroup {
 
     if (update) {
       if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
-        updateSelection(editor, editor.getSelectionModel().getSelectionStart(), editor.getCaretModel().getOffset());
+        updateSelection(editor, editor.getSelectionModel().getSelectionStart(), editor.getCaretModel().getOffset(),
+                        null);
       }
     }
     else {
@@ -281,9 +318,9 @@ public class MotionGroup {
       start = end;
       end = t;
 
-      if (mode == CommandState.SubMode.VISUAL_CHARACTER) {
-        start--;
-      }
+      //if (mode == CommandState.SubMode.VISUAL_CHARACTER) {
+      //  start--;
+      //}
     }
 
     MotionGroup.moveCaret(editor, start);
@@ -400,7 +437,8 @@ public class MotionGroup {
         .min(EditorHelper.getLineEndForOffset(editor, end) + (incNewline ? 1 : 0), EditorHelper.getFileSize(editor));
     }
     // If characterwise and inclusive, add the last character to the range
-    else if ((flags & Command.FLAG_MOT_INCLUSIVE) != 0) {
+    else if ((flags & Command.FLAG_MOT_EXCLUSIVE) != 0) {
+      //不知道为什么要++
       end++;
     }
 
@@ -1279,26 +1317,32 @@ public class MotionGroup {
       }
 
       if (keepVisual) {
-
+        boolean isleft = false;
         int start, end;
         if (offset < orgSelectEnd && offset < orgSelectStart) {
           start = offset;
           end = orgSelectEnd;
+          isleft = true;
         }
         else if (offset > orgSelectEnd && offset > orgSelectStart) {
           start = orgSelectStart;
           end = offset;
+          isleft = false;
         }
         else if (offset < orgOffset) {
           start = orgSelectStart;
           end = offset;
+          isleft = true;
         }
         else {
           start = offset;
           end = orgSelectEnd;
+          isleft = false;
         }
 
-        VimPlugin.getMotion().updateSelection(editor, start, end);
+        //final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+        //final int adj = opt.getValue().equals("exclusive") ? 1 : 0;
+        VimPlugin.getMotion().updateSelection(editor, start, end, isleft);
       }
       else {
         editor.getSelectionModel().removeSelection();
@@ -1471,7 +1515,7 @@ public class MotionGroup {
 
     com.intellij.openapi.util.TextRange preTextRange = preTextRanges.get(editor);
     if (preTextRange != null) {
-      updateSelection(editor, preTextRange.getStartOffset(), preTextRange.getEndOffset());
+      updateSelection(editor, preTextRange.getStartOffset(), preTextRange.getEndOffset(), null);
       editor.getCaretModel().moveToOffset(preTextRange.getStartOffset());
     }
 
@@ -1531,25 +1575,34 @@ public class MotionGroup {
       exitVisual(editor);
     }
     else {
-      CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
+      if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {
+        CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
+      }
     }
 
     KeyHandler.getInstance().reset(editor);
 
-    int visualStart = editor.getSelectionModel().getSelectionStart();
-    int visualEnd = editor.getSelectionModel().getSelectionEnd();
-    if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_CHARACTER) {
-      BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
-      int adj = 1;
-      if (opt.getValue().equals("exclusive")) {
-        adj = 0;
-      }
-      visualEnd -= adj;
-    }
-    editor.getSelectionModel().setSelection(editor.getSelectionModel().getSelectionStart(), visualEnd);
+    //int visualStart = editor.getSelectionModel().getSelectionStart();
+    //int visualEnd = editor.getSelectionModel().getSelectionEnd();
+    //if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_CHARACTER) {
+    //  BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    //  int adj = 1;
+    //  if (opt.getValue().equals("exclusive")) {
+    //    adj = 0;
+    //  }
+    //  visualEnd -= adj;
+    //}
+    //editor.getSelectionModel().setSelection(editor.getSelectionModel().getSelectionStart(), visualEnd);
     //visualOffset = editor.getCaretModel().getOffset();
 
     VimPlugin.getMark().setVisualSelectionMarks(editor, getRawVisualRange(editor));
+    if (mode == CommandState.SubMode.VISUAL_CHARACTER) {
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, true);
+      }
+    }
+
   }
 
   public boolean toggleVisual(@NotNull Editor editor, int count, int rawCount, @NotNull CommandState.SubMode mode) {
@@ -1579,16 +1632,28 @@ public class MotionGroup {
       else {
         start = end = editor.getSelectionModel().getSelectionStart();
       }
-      CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
-      updateSelection(editor, start, end);
+      if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {
+        CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
+      }
+      //updateSelection(editor, start, end, null);
       MotionGroup.moveCaret(editor, editor.getSelectionModel().getSelectionEnd(), true);
+
+      if (mode == CommandState.SubMode.VISUAL_CHARACTER ||
+          mode == CommandState.SubMode.VISUAL_BLOCK ||
+          mode == CommandState.SubMode.VISUAL_LINE) {
+        resetCursor(editor, true);
+      }
     }
     else if (mode == currentMode) {
       exitVisual(editor);
     }
     else {
+      if (mode == CommandState.SubMode.VISUAL_CHARACTER ||
+          mode == CommandState.SubMode.VISUAL_BLOCK ||
+          mode == CommandState.SubMode.VISUAL_LINE) {
+        resetCursor(editor, true);
+      }
       CommandState.getInstance(editor).setSubMode(mode);
-      //updateSelection(editor, editor.getSelectionModel().getSelectionEnd());
     }
 
     return true;
@@ -1631,6 +1696,17 @@ public class MotionGroup {
     resetVisual(editor, true);
     if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
       CommandState.getInstance(editor).popState();
+      KeyHandler.getInstance().reset(editor);
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        if (CommandState.getInstance(editor).getMode() == CommandState.Mode.INSERT ||
+            CommandState.getInstance(editor).getMode() == CommandState.Mode.REPLACE) {
+          resetCursor(editor, true);
+        }
+        else {
+          resetCursor(editor, false);
+        }
+      }
     }
   }
 
@@ -1705,7 +1781,7 @@ public class MotionGroup {
     //updateSelection(editor, visualEnd);
   }
 
-  private void updateSelection(@NotNull Editor editor, int start, int end) {
+  public void updateSelection(@NotNull Editor editor, int start, int end, Boolean isLeft) {
 
     final CommandState.SubMode subMode = CommandState.getInstance(editor).getSubMode();
 
@@ -1715,9 +1791,14 @@ public class MotionGroup {
       //  start = end;
       //  end = t;
       //}
-      //final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
-      //int lineEnd = EditorHelper.getLineEndForOffset(editor, end);
-      //final int adj = opt.getValue().equals("exclusive") || end == lineEnd ? 0 : 1;
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      int lineEnd = EditorHelper.getLineEndForOffset(editor, end);
+      final int adj = opt.getValue().equals("inclusive") ? 0 : 1;
+      if (isLeft != null) {
+        //if (isLeft) {
+        //  start = start + adj;
+        //}
+      }
       final int adjEnd = Math.min(EditorHelper.getFileSize(editor), end);
       editor.getSelectionModel().setSelection(start, adjEnd);
     }
@@ -1804,7 +1885,12 @@ public class MotionGroup {
       final Document document = editor.getDocument();
       if (selectionEvent.getNewRange().getStartOffset() == selectionEvent.getNewRange().getEndOffset()) {
         preTextRanges.put(editor, selectionEvent.getOldRange());
-        VimPlugin.getMotion().exitVisual(editor);
+        //VimPlugin.getMotion().exitVisual(editor);
+
+        //final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+        //if (opt.getValue().equals("exclusive")) {
+        //  resetCursor(editor, false);
+        //}
       }
       else {
         if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {

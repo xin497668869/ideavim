@@ -25,11 +25,16 @@ import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
+import com.intellij.openapi.command.undo.DocumentReference;
+import com.intellij.openapi.command.undo.DocumentReferenceManager;
+import com.intellij.openapi.command.undo.UndoManager;
+import com.intellij.openapi.command.undo.UndoableAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.ActionPlan;
 import com.intellij.openapi.editor.actionSystem.TypedActionHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.impl.source.tree.injected.InjectedLanguageUtil;
+import com.maddyhome.idea.vim.action.change.insert.VimUndoableAction;
 import com.maddyhome.idea.vim.command.Argument;
 import com.maddyhome.idea.vim.command.Command;
 import com.maddyhome.idea.vim.command.CommandState;
@@ -234,7 +239,7 @@ public class KeyHandler {
 
     // Do we have a fully entered command at this point? If so, lets execute it
     if (state == State.READY) {
-      VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
+      //VimCommandStatusBarWidget.cleanVimCommandStatusBar(editor.getProject());
       executeCommand(editor, key, context, editorState);
     }
     else if (state == State.BAD_COMMAND) {
@@ -502,6 +507,25 @@ public class KeyHandler {
         String name = cmd.getAction().getTemplatePresentation().getText();
         name = name != null ? "Vim " + name : "";
         if (cmd.getType().isWrite()) {
+
+          if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
+            UndoableAction vimUndoableAction = new VimUndoableAction(
+              new DocumentReference[]{DocumentReferenceManager.getInstance().create(editor.getDocument())}, name);
+            if(editor.getProject() != null) {
+              UndoManager.getInstance(editor.getProject()).undoableActionPerformed(vimUndoableAction);
+            }
+          }
+          else if (!"Vim Exit Insert Mode".equals(name) &&
+                   !"Vim Undo".equals(name) &&
+                   !"Vim Redo".equals(name) &&
+                   !"Vim Enter".equals(name)) {
+            UndoableAction vimUndoableAction = new VimUndoableAction(
+              new DocumentReference[]{DocumentReferenceManager.getInstance().create(editor.getDocument())}, name);
+
+            if(editor.getProject() != null) {
+              UndoManager.getInstance(editor.getProject()).undoableActionPerformed(vimUndoableAction);
+            }
+          }
           RunnableHelper.runWriteCommand(project, action, name, action);
         }
         else {

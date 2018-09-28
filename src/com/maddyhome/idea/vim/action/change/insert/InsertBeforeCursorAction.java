@@ -36,7 +36,10 @@ import java.util.Set;
 public class InsertBeforeCursorAction extends VimCommandAction {
   public InsertBeforeCursorAction() {
     super(new ChangeEditorActionHandler() {
-      public boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount,
+      public boolean execute(@NotNull Editor editor,
+                             @NotNull DataContext context,
+                             int count,
+                             int rawCount,
                              @Nullable Argument argument) {
         VimPlugin.getChange().insertBeforeCursor(editor, context);
         return true;

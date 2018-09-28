@@ -35,7 +35,12 @@ public class InsertAfterCursorAction extends EditorAction {
   }
 
   private static class Handler extends ChangeEditorActionHandler {
-    public boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount, @Nullable Argument argument) {
+    public boolean execute(@NotNull Editor editor,
+                           @NotNull DataContext context,
+                           int count,
+                           int rawCount,
+                           @Nullable Argument argument) {
+
       VimPlugin.getChange().insertAfterCursor(editor, context);
 
       return true;

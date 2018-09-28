@@ -30,6 +30,7 @@ import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.CaretAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.RawText;
+import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.editor.actions.CopyAction;
 import com.intellij.openapi.editor.actions.EditorActionUtil;
@@ -167,13 +168,17 @@ public class RegisterGroup {
                            boolean isDelete) {
     if (isRegisterWritable()) {
       //String text = EditorHelper.getText(editor, range);
-      //editor.getSelectionModel().selectLineAtCaret();
-      //editor.getScrollingModel().scrollToCaret(ScrollType.RELATIVE);
+      editor.getSelectionModel().setSelection(range.getStartOffset(), range.getEndOffset());
+      editor.getScrollingModel().scrollToCaret(ScrollType.RELATIVE);
       //if(true) {
       //  return true;
       //}
       Transferable transferable = getTransferable(editor, range, type, editor.getCaretModel().getCurrentCaret());
-      return storeTextInternal(editor, range, transferable, type, lastRegister, isDelete);
+      boolean b = storeTextInternal(editor, range, transferable, type, lastRegister, isDelete);
+      if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
+        VimPlugin.getMotion().exitVisual(editor);
+      }
+      return b;
     }
 
     return false;
@@ -278,12 +283,12 @@ public class RegisterGroup {
       if (Registry.is(CopyAction.SKIP_COPY_AND_CUT_FOR_EMPTY_SELECTION_KEY)) {
         return null;
       }
-      editor.getCaretModel().runForEachCaret(new CaretAction() {
-        @Override
-        public void perform(Caret caret) {
-          selectionModel.selectLineAtCaret();
-        }
-      });
+      //editor.getCaretModel().runForEachCaret(new CaretAction() {
+      //  @Override
+      //  public void perform(Caret caret) {
+      //    selectionModel.selectLineAtCaret();
+      //  }
+      //});
       if (!selectionModel.hasSelection(true)) return null;
       editor.getCaretModel().runForEachCaret(new CaretAction() {
         @Override

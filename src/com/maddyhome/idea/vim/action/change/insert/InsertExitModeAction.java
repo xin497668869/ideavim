@@ -39,11 +39,14 @@ public class InsertExitModeAction extends VimCommandAction {
   public InsertExitModeAction() {
     super(new EditorActionHandlerBase() {
       public boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
+        // "VimInsertExitMode"
         VimPlugin.getChange().processEscape(InjectedLanguageUtil.getTopLevelEditor(editor), context);
         return true;
       }
     });
   }
+
+
 
   @NotNull
   @Override

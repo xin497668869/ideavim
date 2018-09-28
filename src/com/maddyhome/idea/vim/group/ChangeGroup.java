@@ -72,6 +72,7 @@ import com.maddyhome.idea.vim.helper.EditorHelper;
 import com.maddyhome.idea.vim.helper.SearchHelper;
 import com.maddyhome.idea.vim.helper.StringHelper;
 import com.maddyhome.idea.vim.option.BoundListOption;
+import com.maddyhome.idea.vim.option.BoundStringOption;
 import com.maddyhome.idea.vim.option.Options;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -398,6 +399,11 @@ public class ChangeGroup {
       if (mode == CommandState.Mode.REPLACE) {
         processInsert(editor, context);
       }
+
+      if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
+        CommandState.getInstance(editor).popState();
+      }
+
       state.pushState(mode, CommandState.SubMode.NONE, MappingMode.INSERT);
 
       resetCursor(editor, true);
@@ -570,6 +576,7 @@ public class ChangeGroup {
     markGroup.setMark(editor, MarkGroup.MARK_CHANGE_POS, offset);
     CommandState.getInstance(editor).popState();
 
+    //CommandState.getInstance(editor).setSubMode(CommandState.SubMode.NONE);
     if (!CommandState.inInsertMode(editor)) {
       resetCursor(editor, false);
     }
@@ -732,6 +739,10 @@ public class ChangeGroup {
         MotionGroup.moveCaret(editor, norm);
       }
 
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, false);
+      }
       return res;
     }
 
@@ -761,6 +772,10 @@ public class ChangeGroup {
         MotionGroup.moveCaret(editor, VimPlugin.getMotion().moveCaretToLineStartSkipLeadingOffset(editor, -1));
       }
 
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, false);
+      }
       return res;
     }
 
@@ -783,7 +798,10 @@ public class ChangeGroup {
       if (pos != -1) {
         MotionGroup.moveCaret(editor, pos);
       }
-
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, false);
+      }
       return res;
     }
 
@@ -808,7 +826,13 @@ public class ChangeGroup {
       return false;
     }
 
-    return deleteJoinNLines(editor, lline, count, spaces);
+    boolean joinNLines = deleteJoinNLines(editor, lline, count, spaces);
+
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
+    }
+    return joinNLines;
   }
 
   /**
@@ -826,7 +850,13 @@ public class ChangeGroup {
     int count = endLine - startLine + 1;
     if (count < 2) count = 2;
 
-    return deleteJoinNLines(editor, startLine, count, spaces);
+    boolean joinNLines = deleteJoinNLines(editor, startLine, count, spaces);
+
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
+    }
+    return joinNLines;
   }
 
   /**
@@ -862,6 +892,10 @@ public class ChangeGroup {
       }
     }
 
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
+    }
     return true;
   }
 
@@ -909,7 +943,12 @@ public class ChangeGroup {
         }
       }
     }
-    return deleteRange(editor, range, SelectionType.fromCommandFlags(motion.getFlags()), isChange);
+    boolean deleteRange = deleteRange(editor, range, SelectionType.fromCommandFlags(motion.getFlags()), isChange);
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
+    }
+    return deleteRange;
   }
 
   @Nullable
@@ -966,6 +1005,11 @@ public class ChangeGroup {
         pos = EditorHelper.normalizeOffset(editor, range.getStartOffset(), isChange);
       }
       MotionGroup.moveCaret(editor, pos);
+    }
+
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
     }
     return res;
   }
@@ -1623,9 +1667,18 @@ public class ChangeGroup {
         VimPlugin.getMark().setChangeMarks(editor, new TextRange(start, start));
       }
 
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, false);
+      }
+
       return true;
     }
 
+    final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+    if (opt.getValue().equals("exclusive")) {
+      resetCursor(editor, false);
+    }
     return false;
   }
 

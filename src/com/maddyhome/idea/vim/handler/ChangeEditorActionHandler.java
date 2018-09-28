@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class ChangeEditorActionHandler extends EditorActionHandlerBase {
   protected final boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
+
     boolean worked = execute(editor, context, cmd.getCount(), cmd.getRawCount(), cmd.getArgument());
     if (worked) {
       CommandState.getInstance(editor).saveLastChangeCommand(cmd);
@@ -37,6 +38,9 @@ public abstract class ChangeEditorActionHandler extends EditorActionHandlerBase 
     return worked;
   }
 
-  public abstract boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount,
+  public abstract boolean execute(@NotNull Editor editor,
+                                  @NotNull DataContext context,
+                                  int count,
+                                  int rawCount,
                                   @Nullable Argument argument);
 }

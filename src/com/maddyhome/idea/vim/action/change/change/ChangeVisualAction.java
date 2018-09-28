@@ -39,7 +39,9 @@ import java.util.Set;
 public class ChangeVisualAction extends VimCommandAction {
   public ChangeVisualAction() {
     super(new VisualOperatorActionHandler() {
-      protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
+      protected boolean execute(@NotNull Editor editor,
+                                @NotNull DataContext context,
+                                @NotNull Command cmd,
                                 @NotNull TextRange range) {
         final SelectionType type = range.isMultiple() ? SelectionType.BLOCK_WISE : SelectionType.CHARACTER_WISE;
         return VimPlugin.getChange().changeRange(editor, context, range, type);

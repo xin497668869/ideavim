@@ -35,7 +35,11 @@ public class MotionRightMatchCharAction extends MotionEditorAction {
   }
 
   private static class Handler extends MotionEditorActionHandler {
-    public int getOffset(@NotNull Editor editor, DataContext context, int count, int rawCount, @NotNull Argument argument) {
+    public int getOffset(@NotNull Editor editor,
+                         DataContext context,
+                         int count,
+                         int rawCount,
+                         @NotNull Argument argument) {
       int res = VimPlugin.getMotion().moveCaretToNextCharacterOnLine(editor, count, argument.getCharacter());
       VimPlugin.getMotion().setLastFTCmd(MotionGroup.LAST_f, argument.getCharacter());
       return res;

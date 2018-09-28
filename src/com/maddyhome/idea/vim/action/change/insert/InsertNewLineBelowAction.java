@@ -35,7 +35,11 @@ public class InsertNewLineBelowAction extends EditorAction {
   }
 
   private static class Handler extends ChangeEditorActionHandler {
-    public boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount, @Nullable Argument argument) {
+    public boolean execute(@NotNull Editor editor,
+                           @NotNull DataContext context,
+                           int count,
+                           int rawCount,
+                           @Nullable Argument argument) {
       if (editor.isOneLineMode()) {
         return false;
       }

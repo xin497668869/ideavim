@@ -270,7 +270,7 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
       }
       final ChangeGroup change = VimPlugin.getChange();
       final String leftSurround = pair.getFirst();
-      change.insertText(editor, range.getEndOffset() + leftSurround.length() - 1, pair.getSecond());
+      change.insertText(editor, range.getEndOffset() + leftSurround.length() - 2, pair.getSecond());
       change.insertText(editor, range.getStartOffset(), leftSurround);
 
       // Jump back to start
@@ -285,10 +285,11 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
         case COMMAND:
           return VimPlugin.getMark().getChangeMarks(editor);
         case VISUAL:
-          final TextRange visualRange = VimPlugin.getMark().getVisualSelectionMarks(editor);
-          if (visualRange == null) return null;
-          final int exclusiveEnd = EditorHelper.normalizeOffset(editor, visualRange.getEndOffset() + 1);
-          return new TextRange(visualRange.getStartOffset(), exclusiveEnd);
+          //final TextRange visualRange = VimPlugin.getMark().getVisualSelectionMarks(editor);
+          //if (visualRange == null) return null;
+          final int exclusiveEnd =
+            EditorHelper.normalizeOffset(editor, editor.getSelectionModel().getSelectionEnd() + 1);
+          return new TextRange(editor.getSelectionModel().getSelectionStart(), exclusiveEnd);
         default:
           return null;
       }

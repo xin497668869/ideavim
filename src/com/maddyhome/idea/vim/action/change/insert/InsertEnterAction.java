@@ -38,4 +38,5 @@ public class InsertEnterAction extends EditorAction {
       VimPlugin.getChange().processEnter(InjectedLanguageUtil.getTopLevelEditor(editor), context);
     }
   }
+
 }

@@ -25,7 +25,6 @@ import com.maddyhome.idea.vim.command.Argument;
 import com.maddyhome.idea.vim.command.Command;
 import com.maddyhome.idea.vim.command.CommandState;
 import com.maddyhome.idea.vim.common.TextRange;
-import com.maddyhome.idea.vim.group.MotionGroup;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,16 +48,19 @@ public abstract class TextObjectActionHandler extends EditorActionHandlerBase {
         VimPlugin.getMotion().moveVisualStart(newstart);
       }
 
-      if (((cmd.getFlags() & Command.FLAG_MOT_LINEWISE) != 0 && (cmd.getFlags() & Command.FLAG_VISUAL_CHARACTERWISE) == 0) &&
+      if (((cmd.getFlags() & Command.FLAG_MOT_LINEWISE) != 0 &&
+           (cmd.getFlags() & Command.FLAG_VISUAL_CHARACTERWISE) == 0) &&
           CommandState.getInstance(editor).getSubMode() != CommandState.SubMode.VISUAL_LINE) {
         VimPlugin.getMotion().toggleVisual(editor, 1, 0, CommandState.SubMode.VISUAL_LINE);
       }
-      else if (((cmd.getFlags() & Command.FLAG_MOT_LINEWISE) == 0 || (cmd.getFlags() & Command.FLAG_VISUAL_CHARACTERWISE) != 0) &&
+      else if (((cmd.getFlags() & Command.FLAG_MOT_LINEWISE) == 0 ||
+                (cmd.getFlags() & Command.FLAG_VISUAL_CHARACTERWISE) != 0) &&
                CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_LINE) {
         VimPlugin.getMotion().toggleVisual(editor, 1, 0, CommandState.SubMode.VISUAL_CHARACTER);
       }
 
-      MotionGroup.moveCaret(editor, newend);
+      VimPlugin.getMotion().updateSelection(editor, newstart, newend + 1, null);
+      editor.getCaretModel().moveToOffset(newend + 1);
     }
 
     return true;

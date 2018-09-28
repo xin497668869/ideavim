@@ -60,6 +60,8 @@ import com.maddyhome.idea.vim.command.SelectionType;
 import com.maddyhome.idea.vim.common.Register;
 import com.maddyhome.idea.vim.common.TextRange;
 import com.maddyhome.idea.vim.helper.EditorHelper;
+import com.maddyhome.idea.vim.option.BoundStringOption;
+import com.maddyhome.idea.vim.option.Options;
 import com.maddyhome.idea.vim.utils.EditorModificationUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -74,6 +76,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+
+import static com.maddyhome.idea.vim.group.ChangeGroup.resetCursor;
 
 /**
  * This group works with command associated with copying and pasting text
@@ -140,7 +144,10 @@ public class CopyGroup {
       if (moveCursor) {
         MotionGroup.moveCaret(editor, range.normalize().getStartOffset());
       }
-
+      final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
+      if (opt.getValue().equals("exclusive")) {
+        resetCursor(editor, false);
+      }
       return res;
     }
 
@@ -636,11 +643,11 @@ public class CopyGroup {
         !type.equals(SelectionType.LINE_WISE)) {
       caretModel.moveToOffset(offset + 1);
     }
-    if (type == SelectionType.LINE_WISE &&
-        text.length() > 0 &&
-        editor.getCaretModel().getLogicalPosition().line + 1 < editor.getDocument().getLineCount()) {
-      text = text + '\n';
-    }
+    //if (type == SelectionType.LINE_WISE &&
+    //    text.length() > 0 &&
+    //    editor.getCaretModel().getLogicalPosition().line + 1 < editor.getDocument().getLineCount()) {
+    //  text = text + '\n';
+    //}
     final String _text = text;
     EditorModificationUtil.insertStringAtCaret(editor, _text, false, true, type);
     caretModel.moveToOffset(offset);
