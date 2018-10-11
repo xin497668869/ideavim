@@ -47,7 +47,7 @@ import static com.maddyhome.idea.vim.command.MappingMode.NVO;
 public class ReformatCodeVisualAction extends VimCommandAction {
 
     public static final String DA_KUO_HAO_EXPECTED = "'}' expected";
-    public static final String FEN_HAO_EXPECTED = "';' expected";
+    public static final String FEN_HAO_EXPECTED    = "';' expected";
 
     public ReformatCodeVisualAction() {
         super(new EditorActionHandlerBase() {
@@ -75,10 +75,11 @@ public class ReformatCodeVisualAction extends VimCommandAction {
                             return true;
                         });
                 for (HighlightInfo highlightInfo : highlightInfos) {
-                    if(FEN_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
+                    if (FEN_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
                         editor.getDocument().insertString(highlightInfo.getStartOffset(), ";");
-                    }else if(DA_KUO_HAO_EXPECTED.equals(highlightInfo.getDescription())){
+                    } else if (DA_KUO_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
                         editor.getDocument().insertString(highlightInfo.getStartOffset(), "}");
+
                     }
                 }
                 return true;
@@ -104,8 +105,4 @@ public class ReformatCodeVisualAction extends VimCommandAction {
         return Command.Type.CHANGE;
     }
 
-    //@Override
-    //public int getFlags() {
-    //  return Command.FLAG_MOT_LINEWISE | Command.FLAG_FORCE_LINEWISE | Command.FLAG_EXIT_VISUAL;
-    //}
 }

@@ -59,8 +59,8 @@ public class RegisterActions {
                           new Shortcut('V'));
     parser.registerAction(MappingMode.NV, "VimVisualToggleBlockMode", Command.Type.OTHER_READONLY,
                           Command.FLAG_MOT_BLOCKWISE,
-                          new Shortcut[]{new Shortcut(KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_MASK)),
-                            new Shortcut(KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.CTRL_MASK))}
+                          new Shortcut[]{
+                            new Shortcut(KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.ALT_MASK))}
     );
     parser.registerAction(MappingMode.NV, "VimMotionMark", Command.Type.OTHER_READONLY, new Shortcut('m'),
                           Argument.Type.CHARACTER);
