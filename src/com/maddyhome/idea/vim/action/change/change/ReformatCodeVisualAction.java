@@ -20,77 +20,92 @@ package com.maddyhome.idea.vim.action.change.change;
 
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
+import com.intellij.codeInspection.actions.CleanupAllIntention;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.util.Processor;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiFile;
 import com.maddyhome.idea.vim.VimPlugin;
 import com.maddyhome.idea.vim.action.VimCommandAction;
 import com.maddyhome.idea.vim.command.Command;
 import com.maddyhome.idea.vim.command.MappingMode;
-import com.maddyhome.idea.vim.common.TextRange;
-import com.maddyhome.idea.vim.handler.VisualOperatorActionHandler;
+import com.maddyhome.idea.vim.handler.EditorActionHandlerBase;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.maddyhome.idea.vim.command.MappingMode.NV;
+import static com.maddyhome.idea.vim.command.MappingMode.NVO;
 
 /**
  * @author vlan
  */
 public class ReformatCodeVisualAction extends VimCommandAction {
-  public ReformatCodeVisualAction() {
-    super(new VisualOperatorActionHandler() {
-      @Override
-      protected boolean execute(@NotNull Editor editor,
-                                @NotNull DataContext context,
-                                @NotNull Command cmd,
-                                @NotNull TextRange range) {
-        VimPlugin.getChange().reformatCode(context);
-        DaemonCodeAnalyzerEx.processHighlights(editor.getDocument(), editor.getProject(), HighlightSeverity.ERROR, 0,
-                                               editor.getDocument().getTextLength(), new Processor<HighlightInfo>() {
+
+    public static final String DA_KUO_HAO_EXPECTED = "'}' expected";
+    public static final String FEN_HAO_EXPECTED = "';' expected";
+
+    public ReformatCodeVisualAction() {
+        super(new EditorActionHandlerBase() {
             @Override
-            public boolean process(HighlightInfo highlightInfo) {
-              if ("';' expected".equals(highlightInfo.getDescription())) {
-                ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                  @Override
-                  public void run() {
-                    editor.getDocument().insertString(highlightInfo.getStartOffset(), ";");
-                  }
-                });
-              }
-              return true;
+            protected boolean execute(@NotNull Editor editor,
+                                      @NotNull DataContext context,
+                                      @NotNull Command cmd
+            ) {
+                PsiFile psiFile = context.getData(CommonDataKeys.PSI_FILE);
+                Project project = context.getData(CommonDataKeys.PROJECT);
+                if (project == null) {
+                    return true;
+                }
+                CleanupAllIntention.INSTANCE.invoke(project, editor, psiFile);
+                VimPlugin.getChange().reformatCode(context);
+                List<HighlightInfo> highlightInfos = new ArrayList<>();
+                DaemonCodeAnalyzerEx.processHighlights(editor.getDocument(), project, HighlightSeverity.ERROR, 0,
+                                                       editor.getDocument().getTextLength(), highlightInfo -> {
+                            if (FEN_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
+                                highlightInfos.add(highlightInfo);
+                            }
+                            if (DA_KUO_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
+                                highlightInfos.add(highlightInfo);
+                            }
+                            return true;
+                        });
+                for (HighlightInfo highlightInfo : highlightInfos) {
+                    if(FEN_HAO_EXPECTED.equals(highlightInfo.getDescription())) {
+                        editor.getDocument().insertString(highlightInfo.getStartOffset(), ";");
+                    }else if(DA_KUO_HAO_EXPECTED.equals(highlightInfo.getDescription())){
+                        editor.getDocument().insertString(highlightInfo.getStartOffset(), "}");
+                    }
+                }
+                return true;
             }
-          });
-        return true;
-      }
-    });
-  }
+        });
+    }
 
-  @NotNull
-  @Override
-  public Set<MappingMode> getMappingModes() {
-    return NV;
-  }
+    @NotNull
+    @Override
+    public Set<MappingMode> getMappingModes() {
+        return NVO;
+    }
 
-  @NotNull
-  @Override
-  public Set<List<KeyStroke>> getKeyStrokesSet() {
-    return parseKeysSet("<space>l");
-  }
+    @NotNull
+    @Override
+    public Set<List<KeyStroke>> getKeyStrokesSet() {
+        return parseKeysSet("<space>l");
+    }
 
-  @NotNull
-  @Override
-  public Command.Type getType() {
-    return Command.Type.CHANGE;
-  }
+    @NotNull
+    @Override
+    public Command.Type getType() {
+        return Command.Type.CHANGE;
+    }
 
-  //@Override
-  //public int getFlags() {
-  //  return Command.FLAG_MOT_LINEWISE | Command.FLAG_FORCE_LINEWISE | Command.FLAG_EXIT_VISUAL;
-  //}
+    //@Override
+    //public int getFlags() {
+    //  return Command.FLAG_MOT_LINEWISE | Command.FLAG_FORCE_LINEWISE | Command.FLAG_EXIT_VISUAL;
+    //}
 }

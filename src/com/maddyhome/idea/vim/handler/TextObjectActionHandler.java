@@ -59,7 +59,7 @@ public abstract class TextObjectActionHandler extends EditorActionHandlerBase {
         VimPlugin.getMotion().toggleVisual(editor, 1, 0, CommandState.SubMode.VISUAL_CHARACTER);
       }
 
-      VimPlugin.getMotion().updateSelection(editor, newstart, newend + 1, null);
+      VimPlugin.getMotion().updateSelection(editor, newstart, newend + 1);
       editor.getCaretModel().moveToOffset(newend + 1);
     }
 

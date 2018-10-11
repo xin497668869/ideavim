@@ -278,7 +278,6 @@ public class RegisterGroup {
     final PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
 
     final SelectionModel selectionModel = editor.getSelectionModel();
-    int offset = editor.getCaretModel().getOffset();
     if (!selectionModel.hasSelection(true)) {
       if (Registry.is(CopyAction.SKIP_COPY_AND_CUT_FOR_EMPTY_SELECTION_KEY)) {
         return null;
@@ -329,7 +328,6 @@ public class RegisterGroup {
       new TextBlockTransferable(escapedText != null ? escapedText : rawText, transferableDatas,
                                 escapedText != null ? new RawText(rawText) : null);
     caret.removeSelection();
-    editor.getCaretModel().moveToOffset(offset);
     return transferable;
   }
 

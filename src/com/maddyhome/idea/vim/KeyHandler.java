@@ -523,6 +523,7 @@ public class KeyHandler {
               new DocumentReference[]{DocumentReferenceManager.getInstance().create(editor.getDocument())}, name);
 
             if(editor.getProject() != null) {
+
               UndoManager.getInstance(editor.getProject()).undoableActionPerformed(vimUndoableAction);
             }
           }
@@ -689,6 +690,7 @@ public class KeyHandler {
       action.actionPerformed(event);
       return true;
     }
+
     return false;
   }
 

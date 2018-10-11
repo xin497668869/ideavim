@@ -36,6 +36,7 @@ public class VimUndoableAction implements UndoableAction {
 
   }
 
+
   @Nullable
   @Override
   public DocumentReference[] getAffectedDocuments() {

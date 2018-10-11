@@ -31,39 +31,37 @@ import org.jetbrains.annotations.NotNull;
 /**
  */
 public abstract class MotionEditorActionHandler extends EditorActionHandlerBase {
-  protected final boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
-    preMove(editor, context, cmd);
+    protected final boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
+        preMove(editor, context, cmd);
 
-    int offset = getOffset(editor, context, cmd.getCount(), cmd.getRawCount(), cmd.getArgument());
-    if (offset == -1) {
-      return false;
+        int offset = getOffset(editor, context, cmd.getCount(), cmd.getRawCount(), cmd.getArgument());
+        if (offset == -1) {
+            return false;
+        } else if (offset >= 0) {
+            if ((cmd.getFlags() & Command.FLAG_SAVE_JUMP) != 0) {
+                VimPlugin.getMark().saveJumpLocation(editor);
+            }
+
+            if (!CommandState.inInsertMode(editor) &&
+                    !CommandState.inRepeatMode(editor) &&
+                    !(CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL)) {
+                offset = EditorHelper.normalizeOffset(editor, offset, false);
+            }
+
+            MotionGroup.moveCaret(editor, offset);
+            postMove(editor, context, cmd);
+
+            return true;
+        } else {
+            return true;
+        }
     }
-    else if (offset >= 0) {
-      if ((cmd.getFlags() & Command.FLAG_SAVE_JUMP) != 0) {
-        VimPlugin.getMark().saveJumpLocation(editor);
-      }
 
-      if (!CommandState.inInsertMode(editor) &&
-          !CommandState.inRepeatMode(editor) &&
-          !CommandState.inVisualCharacterMode(editor)) {
-        offset = EditorHelper.normalizeOffset(editor, offset, false);
-      }
+    public abstract int getOffset(Editor editor, DataContext context, int count, int rawCount, Argument argument);
 
-      MotionGroup.moveCaret(editor, offset);
-      postMove(editor, context, cmd);
-
-      return true;
+    protected void preMove(Editor editor, DataContext context, Command cmd) {
     }
-    else {
-      return true;
+
+    protected void postMove(Editor editor, DataContext context, Command cmd) {
     }
-  }
-
-  public abstract int getOffset(Editor editor, DataContext context, int count, int rawCount, Argument argument);
-
-  protected void preMove(Editor editor, DataContext context, Command cmd) {
-  }
-
-  protected void postMove(Editor editor, DataContext context, Command cmd) {
-  }
 }

@@ -85,9 +85,9 @@ public abstract class VisualOperatorActionHandler extends EditorActionHandlerBas
       TextRange res = null;
 
       if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_LINE) {
-        int start = VimPlugin.getMotion().moveCaretToLineStart(editor);
-        int offset = Math .min(VimPlugin.getMotion().moveCaretToLineEndOffset(editor, 1, true) + 1, EditorHelper.getFileSize(editor));
-        res = new TextRange(start, offset);
+        int start = VimPlugin.getMotion().moveCaretToLineStart(editor,editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionStart()).line);
+        int offset= EditorHelper.getLineEndOffset(editor, editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionEnd()).line, true);
+        res = new TextRange(start, offset+1);
       }
       else if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
         res = VimPlugin.getMotion().getVisualRange(editor);

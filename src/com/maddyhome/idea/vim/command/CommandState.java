@@ -109,7 +109,7 @@ public class CommandState {
   }
 
   public void pushState(@NotNull Mode mode, @NotNull SubMode submode, @NotNull MappingMode mappingMode) {
-    myStates.push(new State(mode, submode, mappingMode));
+   myStates.push(new State(mode, submode, mappingMode));
     updateStatus();
   }
 
