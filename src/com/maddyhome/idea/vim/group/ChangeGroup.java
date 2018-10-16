@@ -90,23 +90,23 @@ import java.util.List;
  */
 public class ChangeGroup {
 
-    public static final int MAX_REPEAT_CHARS_COUNT = 10000;
-    private static final Logger logger = Logger.getInstance(ChangeGroup.class.getName());
-    private final List<Object>    strokes   = new ArrayList<Object>();
-    private       int             repeatCharsCount;
-    private       List<Object>    lastStrokes;
-    private       int             insertStart;
+    public static final  int             MAX_REPEAT_CHARS_COUNT = 10000;
+    private static final Logger          logger                 = Logger.getInstance(ChangeGroup.class.getName());
+    private final        List<Object>    strokes                = new ArrayList<Object>();
+    private              int             repeatCharsCount;
+    private              List<Object>    lastStrokes;
+    private              int             insertStart;
     @Nullable
-    private       Command         lastInsert;
-    private       boolean         inInsert;
-    private       int             repeatLines;
-    private       int             repeatColumn;
-    private       boolean         repeatAppend;
-    private       boolean         lastLower = true;
-    private       Document        document;
+    private              Command         lastInsert;
+    private              boolean         inInsert;
+    private              int             repeatLines;
+    private              int             repeatColumn;
+    private              boolean         repeatAppend;
+    private              boolean         lastLower              = true;
+    private              Document        document;
     @Nullable
-    private       DocumentAdapter documentListener;
-    private       int             oldOffset = -1;
+    private              DocumentAdapter documentListener;
+    private              int             oldOffset              = -1;
 
     /**
      * Creates the group
@@ -414,7 +414,7 @@ public class ChangeGroup {
         }
 
         if (deleteTo != -1) {
-            deleteRange(editor, new TextRange(deleteTo, offset), SelectionType.CHARACTER_WISE, false);
+            deleteRange(editor, new TextRange(deleteTo, offset), SelectionType.CHARACTER_WISE, false, true);
 
             return true;
         }
@@ -434,7 +434,7 @@ public class ChangeGroup {
             return false;
         }
         final TextRange range = new TextRange(deleteTo, editor.getCaretModel().getOffset());
-        deleteRange(editor, range, SelectionType.CHARACTER_WISE, true);
+        deleteRange(editor, range, SelectionType.CHARACTER_WISE, true, true);
         return true;
     }
 
@@ -755,7 +755,7 @@ public class ChangeGroup {
         int offset = VimPlugin.getMotion().moveCaretHorizontal(editor, count, true);
         if (offset != -1) {
             boolean res =
-                    deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), SelectionType.CHARACTER_WISE);
+                    deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), SelectionType.CHARACTER_WISE, true);
             int pos = editor.getCaretModel().getOffset();
             int norm = EditorHelper.normalizeOffset(editor, editor.getCaretModel().getLogicalPosition().line, pos, isChange);
             if (norm != pos) {
@@ -777,9 +777,10 @@ public class ChangeGroup {
      *
      * @param editor The editor to remove the lines from
      * @param count  The number of lines to delete
+     * @param needSaved
      * @return true if able to delete the lines, false if not
      */
-    public boolean deleteLine(@NotNull Editor editor, int count) {
+    public boolean deleteLine(@NotNull Editor editor, int count, boolean needSaved) {
         int start = VimPlugin.getMotion().moveCaretToLineStart(editor);
         int offset = Math.min(VimPlugin.getMotion().moveCaretToLineEndOffset(editor, count - 1, true) + 1,
                               EditorHelper.getFileSize(editor, true));
@@ -791,12 +792,12 @@ public class ChangeGroup {
             logger.debug("offset=" + offset);
         }
         if (offset != -1) {
-            boolean res = deleteText(editor, new TextRange(start, offset), SelectionType.LINE_WISE);
+            boolean res = deleteText(editor, new TextRange(start, offset), SelectionType.LINE_WISE, needSaved);
             if (res &&
                     editor.getCaretModel().getOffset() > EditorHelper.getFileSize(editor) &&
                     editor.getCaretModel().getOffset() != 0) {
                 MotionGroup.moveCaret(editor, VimPlugin.getMotion().moveCaretToLineStartSkipLeadingOffset(editor, -1));
-            }else {
+            } else {
                 MotionGroup.moveCaret(editor, VimPlugin.getMotion().moveCaretToLineStartSkipLeadingOffset(editor, 0));
             }
 
@@ -821,7 +822,7 @@ public class ChangeGroup {
         int offset = VimPlugin.getMotion().moveCaretToLineEndOffset(editor, count - 1, true);
         if (offset != -1) {
             boolean res =
-                    deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), SelectionType.CHARACTER_WISE);
+                    deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), SelectionType.CHARACTER_WISE, true);
             int pos = VimPlugin.getMotion().moveCaretHorizontal(editor, -1, false);
             if (pos != -1) {
                 MotionGroup.moveCaret(editor, pos);
@@ -912,7 +913,7 @@ public class ChangeGroup {
             } else {
                 offset = VimPlugin.getMotion().moveCaretToLineStartOffset(editor);
             }
-            deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), null);
+            deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), null, true);
             if (spaces && !hasTrailingWhitespace) {
                 insertText(editor, start, " ");
                 MotionGroup.moveCaret(editor, VimPlugin.getMotion().moveCaretHorizontal(editor, -1, false));
@@ -970,7 +971,7 @@ public class ChangeGroup {
                 }
             }
         }
-        boolean deleteRange = deleteRange(editor, range, SelectionType.fromCommandFlags(motion.getFlags()), isChange);
+        boolean deleteRange = deleteRange(editor, range, SelectionType.fromCommandFlags(motion.getFlags()), isChange, true);
         final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
         if (opt.getValue().equals("exclusive")) {
             resetCursor(editor, false);
@@ -981,17 +982,18 @@ public class ChangeGroup {
     /**
      * Delete the range of text.
      *
-     * @param editor   The editor to delete the text from
-     * @param range    The range to delete
-     * @param type     The type of deletion
-     * @param isChange is from a change action
+     * @param editor    The editor to delete the text from
+     * @param range     The range to delete
+     * @param type      The type of deletion
+     * @param isChange  is from a change action
+     * @param needSaved
      * @return true if able to delete the text, false if not
      */
     public boolean deleteRange(@NotNull Editor editor,
                                @NotNull TextRange range,
                                @Nullable SelectionType type,
-                               boolean isChange) {
-        final boolean res = deleteText(editor, range, type);
+                               boolean isChange, boolean needSaved) {
+        final boolean res = deleteText(editor, range, type, needSaved);
         final int size = EditorHelper.getFileSize(editor);
         if (res) {
             final int pos;
@@ -1000,7 +1002,11 @@ public class ChangeGroup {
             } else {
                 pos = EditorHelper.normalizeOffset(editor, range.getStartOffset(), isChange);
             }
-            MotionGroup.moveCaret(editor, pos);
+            if (type == SelectionType.LINE_WISE) {
+                MotionGroup.moveCaret(editor, VimPlugin.getMotion().moveCaretToLineStartSkipLeading(editor, editor.offsetToLogicalPosition(pos).line));
+            } else {
+                MotionGroup.moveCaret(editor, pos);
+            }
         }
 
         final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
@@ -1132,7 +1138,7 @@ public class ChangeGroup {
         final LogicalPosition pos = editor.offsetToLogicalPosition(editor.getCaretModel().getOffset());
         final boolean insertBelow = pos.line + count >= EditorHelper.getLineCount(editor);
 
-        boolean res = deleteLine(editor, count);
+        boolean res = deleteLine(editor, count, true);
         if (res) {
             if (insertBelow) {
                 insertNewLineBelow(editor, context);
@@ -1310,7 +1316,7 @@ public class ChangeGroup {
             }
         }
         boolean after = range.getEndOffset() >= EditorHelper.getFileSize(editor);
-        boolean res = deleteRange(editor, range, type, true);
+        boolean res = deleteRange(editor, range, type, true, true);
         if (res) {
             if (type == SelectionType.LINE_WISE) {
                 if (after) {
@@ -1536,7 +1542,7 @@ public class ChangeGroup {
                             }
                         }
                         if (pos > wsoff) {
-                            deleteText(editor, new TextRange(wsoff, pos), null);
+                            deleteText(editor, new TextRange(wsoff, pos), null, true);
                         }
                     }
                 }
@@ -1605,20 +1611,20 @@ public class ChangeGroup {
      * Delete text from the document. This will fail if being asked to store the deleted text into a read-only
      * register.
      *
-     * @param editor The editor to delete from
-     * @param range  The range to delete
-     * @param type   The type of deletion
+     * @param editor    The editor to delete from
+     * @param range     The range to delete
+     * @param type      The type of deletion
+     * @param needSaved
      * @return true if able to delete the text, false if not
      */
     private boolean deleteText(@NotNull final Editor editor,
                                @NotNull final TextRange range,
-                               @Nullable SelectionType type) {
+                               @Nullable SelectionType type, boolean needSaved) {
         // Fix for http://youtrack.jetbrains.net/issue/VIM-35
         if (!range.normalize(EditorHelper.getFileSize(editor, true))) {
             return false;
         }
-
-        if (type == null || VimPlugin.getRegister().storeText(editor, range, type, true)) {
+        if (!needSaved || (type == null || VimPlugin.getRegister().storeText(editor, range, type, true))) {
             final Document document = editor.getDocument();
             final int[] startOffsets = range.getStartOffsets();
             final int[] endOffsets = range.getEndOffsets();

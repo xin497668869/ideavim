@@ -572,6 +572,8 @@ public class RegisterActions {
                           new Shortcut('J'));
     parser.registerAction(MappingMode.N, "VimDeleteLine", Command.Type.DELETE, Command.FLAG_ALLOW_MID_COUNT,
                           new Shortcut("dd"));
+    parser.registerAction(MappingMode.N, "DeleteLineWithoutCopyAction", Command.Type.DELETE, Command.FLAG_ALLOW_MID_COUNT,
+                          new Shortcut("dx"));
     parser.registerAction(MappingMode.N, "VimDeleteMotion", Command.Type.DELETE, Command.FLAG_OP_PEND,
                           new Shortcut('d'), Argument.Type.MOTION);
     parser.registerAction(MappingMode.N, "VimFilterCountLines", Command.Type.CHANGE,

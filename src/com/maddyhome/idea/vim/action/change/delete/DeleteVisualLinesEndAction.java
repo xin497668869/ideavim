@@ -51,12 +51,12 @@ public class DeleteVisualLinesEndAction extends VimCommandAction {
             }
           }
           final TextRange blockRange = new TextRange(starts, ends);
-          return VimPlugin.getChange().deleteRange(editor, blockRange, SelectionType.BLOCK_WISE, false);
+          return VimPlugin.getChange().deleteRange(editor, blockRange, SelectionType.BLOCK_WISE, false, true);
         }
         else {
           final TextRange lineRange = new TextRange(EditorHelper.getLineStartForOffset(editor, range.getStartOffset()),
                                                     EditorHelper.getLineEndForOffset(editor, range.getEndOffset()) + 1);
-          return VimPlugin.getChange().deleteRange(editor, lineRange, SelectionType.LINE_WISE, false);
+          return VimPlugin.getChange().deleteRange(editor, lineRange, SelectionType.LINE_WISE, false, true);
         }
       }
     });

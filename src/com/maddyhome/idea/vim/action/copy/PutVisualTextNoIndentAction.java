@@ -40,7 +40,7 @@ public class PutVisualTextNoIndentAction extends VimCommandAction {
     super(new VisualOperatorActionHandler() {
       protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
                                 @NotNull TextRange range) {
-        return VimPlugin.getCopy().putVisualRange(editor, context, range, cmd.getCount(), false, false);
+        return VimPlugin.getCopy().putVisualRange(editor, context, range, cmd.getCount(), false, false, true);
       }
     });
   }

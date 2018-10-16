@@ -27,16 +27,11 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Caret;
-import com.intellij.openapi.editor.CaretAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.RawText;
 import com.intellij.openapi.editor.ScrollType;
-import com.intellij.openapi.editor.SelectionModel;
-import com.intellij.openapi.editor.actions.CopyAction;
-import com.intellij.openapi.editor.actions.EditorActionUtil;
 import com.intellij.openapi.extensions.Extensions;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
@@ -80,6 +75,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This group works with command associated with copying and pasting text
@@ -94,7 +90,7 @@ public class RegisterGroup {
   private static final List<Character> CLIPBOARD_REGISTERS = ImmutableList.of('*', '+');
   private static final Logger logger = Logger.getInstance(RegisterGroup.class.getName());
 
-  private char defaultRegister = '"';
+  private char defaultRegister = '+';
   private char lastRegister = defaultRegister;
   @NotNull private final HashMap<Character, Register> registers = new HashMap<Character, Register>();
   private char recordRegister = 0;
@@ -168,7 +164,6 @@ public class RegisterGroup {
                            boolean isDelete) {
     if (isRegisterWritable()) {
       //String text = EditorHelper.getText(editor, range);
-      editor.getSelectionModel().setSelection(range.getStartOffset(), range.getEndOffset());
       editor.getScrollingModel().scrollToCaret(ScrollType.RELATIVE);
       //if(true) {
       //  return true;
@@ -277,31 +272,21 @@ public class RegisterGroup {
       CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(editor.getComponent()));
     final PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
 
-    final SelectionModel selectionModel = editor.getSelectionModel();
-    if (!selectionModel.hasSelection(true)) {
-      if (Registry.is(CopyAction.SKIP_COPY_AND_CUT_FOR_EMPTY_SELECTION_KEY)) {
-        return null;
-      }
       //editor.getCaretModel().runForEachCaret(new CaretAction() {
       //  @Override
       //  public void perform(Caret caret) {
       //    selectionModel.selectLineAtCaret();
       //  }
       //});
-      if (!selectionModel.hasSelection(true)) return null;
-      editor.getCaretModel().runForEachCaret(new CaretAction() {
-        @Override
-        public void perform(Caret caret) {
-          EditorActionUtil.moveCaretToLineStartIgnoringSoftWraps(editor);
-        }
-      });
-    }
 
     PsiDocumentManager.getInstance(project).commitAllDocuments();
 
-    final int[] startOffsets = selectionModel.getBlockSelectionStarts();
-    final int[] endOffsets = selectionModel.getBlockSelectionEnds();
-
+    final int[] startOffsets = range.getStartOffsets();
+    final int[] endOffsets = range.getEndOffsets();
+    List<String> subTexts = new ArrayList<>();
+      for (int i = 0; i < startOffsets.length; i++) {
+        subTexts.add(editor.getDocument().getText(new com.intellij.openapi.util.TextRange(startOffsets[i], endOffsets[i])));
+      }
     final List<TextBlockTransferableData> transferableDatas = new ArrayList<>();
 
     //DumbService.getInstance(project).withAlternativeResolveEnabled(() -> {
@@ -311,22 +296,18 @@ public class RegisterGroup {
     //  }
     //});
 
-    String text = editor.getDocument()
-      .getText(new com.intellij.openapi.util.TextRange(range.getStartOffset(), range.getEndOffset()));
-    //String text = editor.getCaretModel().supportsMultipleCarets()
-    //              ? EditorCopyPasteHelperImpl.getSelectedTextForClipboard(editor, transferableDatas)
-    //              : editor.getDocument() .getText(new com.intellij.openapi.util.TextRange(range.getStartOffset(),range.getEndOffset()));
-    String rawText = TextBlockTransferable.convertLineSeparators(text, "\n", transferableDatas);
+    String text = subTexts.stream().collect(Collectors.joining("\n"));
+//    String rawText = TextBlockTransferable.convertLineSeparators(text, "\n", transferableDatas);
     String escapedText = null;
     for (CopyPastePreProcessor processor : Extensions.getExtensions(CopyPastePreProcessor.EP_NAME)) {
-      escapedText = processor.preprocessOnCopy(file, startOffsets, endOffsets, rawText);
+      escapedText = processor.preprocessOnCopy(file, startOffsets, endOffsets, text);
       if (escapedText != null) {
         break;
       }
     }
     final Transferable transferable =
-      new TextBlockTransferable(escapedText != null ? escapedText : rawText, transferableDatas,
-                                escapedText != null ? new RawText(rawText) : null);
+      new TextBlockTransferable(escapedText != null ? escapedText : text, transferableDatas,
+                                escapedText != null ? new RawText(text) : null);
     caret.removeSelection();
     return transferable;
   }

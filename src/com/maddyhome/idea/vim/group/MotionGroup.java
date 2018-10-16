@@ -22,7 +22,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandEvent;
 import com.intellij.openapi.command.CommandListener;
 import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.editor.Caret;
+import com.intellij.openapi.editor.CaretState;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -79,9 +79,12 @@ import org.jetbrains.annotations.Nullable;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.maddyhome.idea.vim.command.CommandState.Mode.INSERT;
 import static com.maddyhome.idea.vim.group.ChangeGroup.resetCursor;
 
 /**
@@ -114,7 +117,7 @@ public class MotionGroup {
                 if ("Paste".equals(event.getCommandName())) {
                     Editor selectedTextEditor = FileEditorManager.getInstance(event.getProject()).getSelectedTextEditor();
                     if (selectedTextEditor != null &&
-                            CommandState.getInstance(selectedTextEditor).getMode() != CommandState.Mode.INSERT) {
+                            CommandState.getInstance(selectedTextEditor).getMode() != INSERT) {
                         if (selectedTextEditor.getCaretModel().getOffset() <
                                 selectedTextEditor.getCaretModel().getVisualLineEnd() - 1) {
                             selectedTextEditor.getCaretModel().moveToOffset(selectedTextEditor.getCaretModel().getOffset() + 1);
@@ -323,31 +326,35 @@ public class MotionGroup {
 
     private static void moveCaret(@NotNull Editor editor, int offset, boolean forceKeepVisual) {
         if (offset >= 0 && offset <= editor.getDocument().getTextLength()) {
+
+
+            int orgSelectStart = editor.getSelectionModel().getSelectionStart();
+            int orgSelectEnd = editor.getSelectionModel().getSelectionEnd();
+            int orgOffset = editor.getCaretModel().getOffset();
+
             final boolean keepVisual = forceKeepVisual || keepVisual(editor);
 
 
             if (keepVisual) {
                 if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_LINE) {
-                    int orgSelectStart = editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionStart()).line;
-                    int orgSelectEnd = editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionEnd()).line;
-                    int start = editor.getSelectionModel().getSelectionStart();
-                    int end = editor.getSelectionModel().getSelectionEnd();
-                    int orgOffset = editor.offsetToLogicalPosition(editor.getCaretModel().getOffset()).line;
+                    int orgSelectStartLine = editor.offsetToLogicalPosition(orgSelectStart).line;
+                    int orgSelectEndLine = editor.offsetToLogicalPosition(orgSelectEnd).line;
+                    int start = orgSelectStart;
+                    int end = orgSelectEnd;
+                    int orgOffsetLine = editor.offsetToLogicalPosition(orgOffset).line;
 
-                    if (orgOffset == orgSelectStart) {
+                    if (orgOffsetLine == orgSelectStartLine) {
                         start = offset;
                         VimPlugin.getMotion().updateSelection(editor, start, end);
-                    } else if (orgOffset == orgSelectEnd) {
+                    } else if (orgOffsetLine == orgSelectEndLine) {
                         end = offset;
                         VimPlugin.getMotion().updateSelection(editor, start, end);
                     }
-                } else {
-                    int orgOffset = editor.getCaretModel().getOffset();
-                    int orgSelectStart = editor.getSelectionModel().getSelectionStart();
-                    int orgSelectEnd = editor.getSelectionModel().getSelectionEnd();
+
+                    editor.getCaretModel().moveToOffset(offset, true);
+                } else if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_CHARACTER) {
                     int start = orgSelectStart;
                     int end = orgSelectEnd;
-
                     if (orgOffset == orgSelectStart) {
                         start = offset;
                         VimPlugin.getMotion().updateSelection(editor, start, end);
@@ -357,18 +364,70 @@ public class MotionGroup {
                     } else {
                         editor.getSelectionModel().removeSelection();
                     }
+
+                    editor.getCaretModel().moveToOffset(offset, true);
+                } else if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_BLOCK) {
+                    int size = editor.getSelectionModel().getBlockSelectionStarts().length;
+                    int blockSelectionStart = editor.getSelectionModel().getBlockSelectionStarts()[0];
+                    int blockSelectionEnd = editor.getSelectionModel().getBlockSelectionEnds()[0];
+                    int blockSelectionEnd1 = editor.getSelectionModel().getBlockSelectionEnds()[size - 1];
+                    int blockSelectionStart1 = editor.getSelectionModel().getBlockSelectionStarts()[size - 1];
+                    LogicalPosition startPosition = editor.offsetToLogicalPosition(blockSelectionStart);
+                    LogicalPosition endPosition = editor.offsetToLogicalPosition(editor.getSelectionModel().getBlockSelectionEnds()[editor.getSelectionModel().getBlockSelectionEnds().length - 1]);
+                    if (orgOffset == blockSelectionStart && blockSelectionStart == blockSelectionEnd) {
+
+                        if (editor.offsetToLogicalPosition(blockSelectionStart1).column == editor.offsetToLogicalPosition(orgOffset).column) {
+                            startPosition = editor.offsetToLogicalPosition(offset);
+                            VimPlugin.getMotion().updateSelection(editor, blockSelectionEnd1, editor.logicalPositionToOffset(startPosition));
+                        } else {
+                            startPosition = editor.offsetToLogicalPosition(offset);
+                            VimPlugin.getMotion().updateSelection(editor, blockSelectionStart1, editor.logicalPositionToOffset(startPosition));
+                        }
+                    } else if (orgOffset == blockSelectionStart1 && blockSelectionStart1 == blockSelectionEnd1) {
+                        if (editor.offsetToLogicalPosition(blockSelectionStart).column == editor.offsetToLogicalPosition(orgOffset).column) {
+                            startPosition = editor.offsetToLogicalPosition(offset);
+                            VimPlugin.getMotion().updateSelection(editor, blockSelectionEnd, editor.logicalPositionToOffset(startPosition));
+                        } else {
+                            startPosition = editor.offsetToLogicalPosition(offset);
+                            VimPlugin.getMotion().updateSelection(editor, blockSelectionStart, editor.logicalPositionToOffset(startPosition));
+                        }
+
+                    } else if (blockSelectionStart == orgOffset) {//没问题
+                        startPosition = editor.offsetToLogicalPosition(offset);
+                        VimPlugin.getMotion().updateSelection(editor, editor.logicalPositionToOffset(endPosition), editor.logicalPositionToOffset(startPosition));
+
+                    } else if (blockSelectionEnd1 == orgOffset) {
+                        endPosition = editor.offsetToLogicalPosition(offset);
+
+                        VimPlugin.getMotion().updateSelection(editor, editor.logicalPositionToOffset(startPosition), editor.logicalPositionToOffset(endPosition));
+
+                    } else if (blockSelectionEnd == orgOffset) {
+                        endPosition = editor.offsetToLogicalPosition(offset);
+                        startPosition = editor.offsetToLogicalPosition(blockSelectionStart1);
+
+                        VimPlugin.getMotion().updateSelection(editor, editor.logicalPositionToOffset(startPosition), editor.logicalPositionToOffset(endPosition));
+
+                    } else if (blockSelectionStart1 == orgOffset) {
+                        startPosition = editor.offsetToLogicalPosition(blockSelectionEnd);
+                        endPosition = editor.offsetToLogicalPosition(offset);
+
+                        VimPlugin.getMotion().updateSelection(editor, editor.logicalPositionToOffset(startPosition), editor.logicalPositionToOffset(endPosition));
+                    }
+                    editor.getCaretModel().moveToOffset(offset);
+
+                } else {
+                    editor.getCaretModel().moveToOffset(offset, true);
                 }
+            } else {
+                editor.getCaretModel().moveToOffset(offset, true);
             }
 
-            if (editor.getCaretModel().getOffset() != offset) {
-                if (!keepVisual) {
-                    // XXX: Hack for preventing the merge multiple carets that results in loosing the primary caret for |v_d|
-                    editor.getCaretModel().removeSecondaryCarets();
-                }
-                editor.getCaretModel().moveToOffset(offset);
-                EditorData.setLastColumn(editor, editor.getCaretModel().getVisualPosition().column);
-                scrollCaretIntoView(editor);
+            if (!keepVisual) {
+                // XXX: Hack for preventing the merge multiple carets that results in loosing the primary caret for |v_d|
+                editor.getCaretModel().removeSecondaryCarets();
             }
+            EditorData.setLastColumn(editor, editor.getCaretModel().getVisualPosition().column);
+            scrollCaretIntoView(editor);
             //final BoundStringOption opt = (BoundStringOption)Options.getInstance().getOption("selection");
             //final int adj = opt.getValue().equals("exclusive") ? 1 : 0;
         } else {
@@ -489,6 +548,48 @@ public class MotionGroup {
         }
     }
 
+    /**
+     * 这个方法有bug, start = end的话会被去掉选择, 因此要自己copy一下弄出来
+     *
+     * @param editor
+     * @param blockStart
+     * @param blockEnd
+     * @return
+     * @Override public void setBlockSelection(@NotNull LogicalPosition blockStart, @NotNull LogicalPosition blockEnd) {
+     * List<CaretState> caretStates = EditorModificationUtil.calcBlockSelectionState(myEditor, blockStart, blockEnd);
+     * myEditor.getCaretModel().setCaretsAndSelections(caretStates);
+     * }
+     */
+    @NotNull
+    public static List<CaretState> calcBlockSelectionState(@NotNull Editor editor,
+                                                           @NotNull LogicalPosition blockStart, @NotNull LogicalPosition blockEnd) {
+        int startLine = Math.max(Math.min(blockStart.line, editor.getDocument().getLineCount() - 1), 0);
+        int endLine = Math.max(Math.min(blockEnd.line, editor.getDocument().getLineCount() - 1), 0);
+        int step = endLine < startLine ? -1 : 1;
+        int count = 1 + Math.abs(endLine - startLine);
+        List<CaretState> caretStates = new LinkedList<>();
+        for (int line = startLine, i = 0; i < count; i++, line += step) {
+            int startColumn = blockStart.column;
+            int endColumn = blockEnd.column;
+            int lineEndOffset = editor.getDocument().getLineEndOffset(line);
+            LogicalPosition lineEndPosition = editor.offsetToLogicalPosition(lineEndOffset);
+            int lineWidth = lineEndPosition.column;
+            if (startColumn > lineWidth && endColumn > lineWidth && !editor.isColumnMode()) {
+                LogicalPosition caretPos = new LogicalPosition(line, Math.min(startColumn, endColumn));
+                caretStates.add(new CaretState(caretPos,
+                                               lineEndPosition,
+                                               lineEndPosition));
+            } else {
+                LogicalPosition startPos = new LogicalPosition(line, editor.isColumnMode() ? startColumn : Math.min(startColumn, lineWidth));
+                LogicalPosition endPos = new LogicalPosition(line, editor.isColumnMode() ? endColumn : Math.min(endColumn, lineWidth));
+                int startOffset = editor.logicalPositionToOffset(startPos);
+                int endOffset = editor.logicalPositionToOffset(endPos);
+                caretStates.add(new CaretState(endPos, startPos, endPos));
+            }
+        }
+        return caretStates;
+    }
+
     public void turnOn() {
         Editor[] editors = EditorFactory.getInstance().getAllEditors();
         for (Editor editor : editors) {
@@ -562,7 +663,7 @@ public class MotionGroup {
                 VisualPosition vp = editor.getCaretModel().getVisualPosition();
                 int col = EditorHelper.normalizeVisualColumn(editor, vp.line, vp.column,
                                                              CommandState.getInstance(editor).getMode() ==
-                                                                     CommandState.Mode.INSERT ||
+                                                                     INSERT ||
                                                                      CommandState.getInstance(editor).getMode() ==
                                                                              CommandState.Mode.REPLACE);
                 if (col != vp.column) {
@@ -1390,14 +1491,21 @@ public class MotionGroup {
 
     public int moveCaretVertical(@NotNull Editor editor, int count) {
         VisualPosition pos = editor.getCaretModel().getVisualPosition();
-        if ((pos.line == 0 && count < 0) || (pos.line >= EditorHelper.getVisualLineCount(editor) - 1 && count > 0)) {
+        int trueLine = pos.line;
+//        Integer userData = (Integer) editor.getUserData(currentPositionVerticalKey);
+//        if (userData != null) {
+//            trueLine = userData;
+//        }
+
+        int line = EditorHelper.normalizeVisualLine(editor, trueLine + count);
+        if ((trueLine == 0 && count < 0) || (trueLine >= EditorHelper.getVisualLineCount(editor) - 1 && count > 0)) {
             return -1;
         } else {
             int col = EditorData.getLastColumn(editor);
-            int line = EditorHelper.normalizeVisualLine(editor, pos.line + count);
             VisualPosition newPos = new VisualPosition(line, EditorHelper
-                    .normalizeVisualColumn(editor, line, col, CommandState.inInsertMode(editor)));
+                    .normalizeVisualColumn(editor, line, col, CommandState.inInsertMode(editor) || CommandState.inVisualMode(editor)));
 
+//            editor.putUserData(currentPositionVerticalKey, newPos.line);
             return EditorHelper.visualPositionToOffset(editor, newPos);
         }
     }
@@ -1545,7 +1653,7 @@ public class MotionGroup {
             exitVisual(editor);
         } else {
             if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {
-                if (CommandState.getInstance(editor).getMode() == CommandState.Mode.INSERT) {
+                if (CommandState.getInstance(editor).getMode() == INSERT) {
                     CommandState.getInstance(editor).popState();
                 }
                 CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
@@ -1567,7 +1675,7 @@ public class MotionGroup {
         //editor.getSelectionModel().setSelection(editor.getSelectionModel().getSelectionStart(), visualEnd);
         //visualOffset = editor.getCaretModel().getOffset();
 
-        VimPlugin.getMark().setVisualSelectionMarks(editor, getRawVisualRange(editor));
+//        VimPlugin.getMark().setVisualSelectionMarks(editor, getRawVisualRange(editor));
         if (mode == CommandState.SubMode.VISUAL_CHARACTER) {
             final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
             if (opt.getValue().equals("exclusive")) {
@@ -1604,7 +1712,7 @@ public class MotionGroup {
                 start = end = editor.getSelectionModel().getSelectionStart();
             }
             if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {
-                if (CommandState.getInstance(editor).getMode() == CommandState.Mode.INSERT) {
+                if (CommandState.getInstance(editor).getMode() == INSERT) {
                     CommandState.getInstance(editor).popState();
                 }
                 CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
@@ -1668,7 +1776,7 @@ public class MotionGroup {
             KeyHandler.getInstance().reset(editor);
             final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
             if (opt.getValue().equals("exclusive")) {
-                if (CommandState.getInstance(editor).getMode() == CommandState.Mode.INSERT ||
+                if (CommandState.getInstance(editor).getMode() == INSERT ||
                         CommandState.getInstance(editor).getMode() == CommandState.Mode.REPLACE) {
                     resetCursor(editor, true);
                 } else {
@@ -1776,24 +1884,13 @@ public class MotionGroup {
             LogicalPosition blockStart = editor.offsetToLogicalPosition(start);
             LogicalPosition blockEnd = editor.offsetToLogicalPosition(end);
             if (blockStart.column < blockEnd.column) {
-                blockEnd = new LogicalPosition(blockEnd.line, blockEnd.column + 1);
+                blockEnd = new LogicalPosition(blockEnd.line, blockEnd.column);
             } else {
-                blockStart = new LogicalPosition(blockStart.line, blockStart.column + 1);
+                blockStart = new LogicalPosition(blockStart.line, blockStart.column);
             }
-            editor.getSelectionModel().setBlockSelection(blockStart, blockEnd);
-
-            for (Caret caret : editor.getCaretModel().getAllCarets()) {
-                int line = caret.getLogicalPosition().line;
-                int lineEndOffset = EditorHelper.getLineEndOffset(editor, line, true);
-
-                if (EditorData.getLastColumn(editor) >= MotionGroup.LAST_COLUMN) {
-                    caret.setSelection(caret.getSelectionStart(), lineEndOffset);
-                }
-                if (!EditorHelper.isLineEmpty(editor, line, false)) {
-                    caret.moveToOffset(caret.getSelectionEnd() - 1);
-                }
-            }
-            editor.getCaretModel().moveToOffset(end);
+            List<CaretState> caretStates = calcBlockSelectionState(editor, blockStart, blockEnd);
+            editor.getCaretModel().setCaretsAndSelections(caretStates);
+            System.out.println();
         }
 
         VimPlugin.getMark().setVisualSelectionMarks(editor, new TextRange(start, end));
@@ -1871,7 +1968,9 @@ public class MotionGroup {
 //
                 final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
                 if (opt.getValue().equals("exclusive")) {
-                    resetCursor(editor, false);
+                    if (CommandState.getInstance(editor).getMode() != INSERT) {
+                        resetCursor(editor, false);
+                    }
                 }
             } else {
                 if (CommandState.getInstance(editor).getMode() != CommandState.Mode.VISUAL) {

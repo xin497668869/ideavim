@@ -28,7 +28,6 @@ import com.maddyhome.idea.vim.command.MappingMode;
 import com.maddyhome.idea.vim.command.SelectionType;
 import com.maddyhome.idea.vim.common.TextRange;
 import com.maddyhome.idea.vim.handler.VisualOperatorActionHandler;
-import com.maddyhome.idea.vim.helper.EditorHelper;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -39,43 +38,40 @@ import java.util.Set;
  * @author vlan
  */
 public class DeleteVisualAction extends VimCommandAction {
-  public DeleteVisualAction() {
-    super(new VisualOperatorActionHandler() {
-      protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
-                                @NotNull TextRange range) {
-        final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
-        if (mode == CommandState.SubMode.VISUAL_LINE) {
-          final TextRange lineRange = new TextRange(EditorHelper.getLineStartForOffset(editor, range.getStartOffset()),
-                                                    EditorHelper.getLineEndForOffset(editor, range.getEndOffset()) + 1);
-          return VimPlugin.getChange().deleteRange(editor, lineRange, SelectionType.fromSubMode(mode), false);
-        }
-        else {
-          return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false);
-        }
-      }
-    });
-  }
+    public DeleteVisualAction() {
+        super(new VisualOperatorActionHandler() {
+            protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
+                                      @NotNull TextRange range) {
+                final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
+                if (mode == CommandState.SubMode.VISUAL_LINE) {
+                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, true);
+                } else {
+                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, true);
+                }
+            }
+        });
+    }
 
-  @NotNull
-  @Override
-  public Set<MappingMode> getMappingModes() {
-    return MappingMode.V;
-  }
+    @NotNull
+    @Override
+    public Set<MappingMode> getMappingModes() {
+        return MappingMode.V;
+    }
 
-  @NotNull
-  @Override
-  public Set<List<KeyStroke>> getKeyStrokesSet() {
-    return parseKeysSet("d", "x", "<Del>");
-  }
+    @NotNull
+    @Override
+    public Set<List<KeyStroke>> getKeyStrokesSet() {
+        return parseKeysSet("d" );
+    }
 
-  @NotNull
-  @Override
-  public Command.Type getType() {
-    return Command.Type.DELETE;
-  }
+    @NotNull
+    @Override
+    public Command.Type getType() {
+        return Command.Type.DELETE;
+    }
 
-  @Override
-  public int getFlags() {
-    return Command.FLAG_EXIT_VISUAL;
-  }
+    @Override
+    public int getFlags() {
+        return Command.FLAG_EXIT_VISUAL;
+    }
 }

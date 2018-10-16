@@ -29,14 +29,14 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  */
-public class DeleteLineAction extends EditorAction {
-  public DeleteLineAction() {
+public class DeleteLineWithoutCopyAction extends EditorAction {
+  public DeleteLineWithoutCopyAction() {
     super(new Handler());
   }
 
   private static class Handler extends ChangeEditorActionHandler {
     public boolean execute(@NotNull Editor editor, @NotNull DataContext context, int count, int rawCount, @Nullable Argument argument) {
-      return VimPlugin.getChange().deleteLine(editor, count, true);
+      return VimPlugin.getChange().deleteLine(editor, count, false);
     }
   }
 }

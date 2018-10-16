@@ -16,14 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.maddyhome.idea.vim.action.copy;
+package com.maddyhome.idea.vim.action.change.delete;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
 import com.maddyhome.idea.vim.VimPlugin;
 import com.maddyhome.idea.vim.action.VimCommandAction;
 import com.maddyhome.idea.vim.command.Command;
+import com.maddyhome.idea.vim.command.CommandState;
 import com.maddyhome.idea.vim.command.MappingMode;
+import com.maddyhome.idea.vim.command.SelectionType;
 import com.maddyhome.idea.vim.common.TextRange;
 import com.maddyhome.idea.vim.handler.VisualOperatorActionHandler;
 import org.jetbrains.annotations.NotNull;
@@ -32,19 +34,19 @@ import javax.swing.*;
 import java.util.List;
 import java.util.Set;
 
-
 /**
  * @author vlan
  */
-public class PutVisualTextAction extends VimCommandAction {
-    public PutVisualTextAction() {
+public class DeleteVisualLineWithOutCopyAction extends VimCommandAction {
+    public DeleteVisualLineWithOutCopyAction() {
         super(new VisualOperatorActionHandler() {
             protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
                                       @NotNull TextRange range) {
-                if (cmd.getKeys().get(0).getKeyChar() == 'P') {
-                    return VimPlugin.getCopy().putVisualRange(editor, context, range, cmd.getCount(), true, false, true);
+                final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
+                if (mode == CommandState.SubMode.VISUAL_LINE) {
+                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false);
                 } else {
-                    return VimPlugin.getCopy().putVisualRange(editor, context, range, cmd.getCount(), true, false, false);
+                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false);
                 }
             }
         });
@@ -53,19 +55,19 @@ public class PutVisualTextAction extends VimCommandAction {
     @NotNull
     @Override
     public Set<MappingMode> getMappingModes() {
-        return MappingMode.V;
+        return MappingMode.NV;
     }
 
     @NotNull
     @Override
     public Set<List<KeyStroke>> getKeyStrokesSet() {
-        return parseKeysSet("p", "P");
+        return parseKeysSet("dx","<Del>");
     }
 
     @NotNull
     @Override
     public Command.Type getType() {
-        return Command.Type.PASTE;
+        return Command.Type.DELETE;
     }
 
     @Override

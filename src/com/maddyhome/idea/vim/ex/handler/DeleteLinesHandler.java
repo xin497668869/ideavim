@@ -49,6 +49,6 @@ public class DeleteLinesHandler extends CommandHandler {
 
     TextRange range = cmd.getTextRange(editor, context, true);
 
-    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.LINE_WISE, false);
+    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.LINE_WISE, false, true);
   }
 }

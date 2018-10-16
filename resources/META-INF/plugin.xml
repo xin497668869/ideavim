@@ -258,6 +258,8 @@
     <action id="VimDeleteVisual" class="com.maddyhome.idea.vim.action.change.delete.DeleteVisualAction" text="Delete Selection"/>
     <action id="VimDeleteVisualLines" class="com.maddyhome.idea.vim.action.change.delete.DeleteVisualLinesAction" text="Delete Selected Lines"/>
     <action id="VimDeleteVisualLinesEnd" class="com.maddyhome.idea.vim.action.change.delete.DeleteVisualLinesEndAction" text="Delete Selected Lines"/>
+    <action id="DeleteVisualWithOutCopyAction" class="com.maddyhome.idea.vim.action.change.delete.DeleteVisualWithOutCopyAction" text="Delete Visual Without Copy"/>
+    <action id="DeleteLineWithoutCopyAction" class="com.maddyhome.idea.vim.action.change.delete.DeleteLineWithoutCopyAction" text="Delete Selected Lines Without Copy"/>
 
     <!-- Change -->
     <action id="VimChangeCaseLowerMotion" class="com.maddyhome.idea.vim.action.change.change.ChangeCaseLowerMotionAction" text="Change Motion to Lower Case"/>
@@ -406,6 +408,10 @@
       <action id="myToggleBookmark7" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark7Action"/>
       <action id="myToggleBookmark8" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark8Action"/>
       <action id="myToggleBookmark9" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark9Action"/>
+
+      <!-- myadd -->
+      <action id="myBack" class="com.maddyhome.idea.vim.action.motion.MyBackAction"/>
+      <action id="myForward" class="com.maddyhome.idea.vim.action.motion.MyForwardAction"/>
 
       <add-to-group group-id="Other.KeymapGroup"/>
     </group>

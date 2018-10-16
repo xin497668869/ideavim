@@ -45,12 +45,12 @@ public class DeleteVisualLinesAction extends VimCommandAction {
                                 @NotNull TextRange range) {
         final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
         if (mode == CommandState.SubMode.VISUAL_BLOCK) {
-          return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false);
+          return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false);
         }
         else {
           final TextRange lineRange = new TextRange(EditorHelper.getLineStartForOffset(editor, range.getStartOffset()),
                                                     EditorHelper.getLineEndForOffset(editor, range.getEndOffset()) + 1);
-          return VimPlugin.getChange().deleteRange(editor, lineRange, SelectionType.LINE_WISE, false);
+          return VimPlugin.getChange().deleteRange(editor, lineRange, SelectionType.LINE_WISE, false, false);
         }
       }
     });
