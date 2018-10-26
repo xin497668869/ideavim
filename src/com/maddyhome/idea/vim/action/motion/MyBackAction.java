@@ -45,7 +45,7 @@ public class MyBackAction extends AnAction implements DumbAware {
         if (selectedTextEditor != null
                 && selectedTextEditor != editor
                 && CommandState.getInstance(selectedTextEditor).getMode() != CommandState.Mode.COMMAND) {
-            executeNormal(parseKeys("<Esc>"), editor);
+            executeNormal(parseKeys("<Esc>"), selectedTextEditor);
         }
     }
 

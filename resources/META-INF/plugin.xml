@@ -412,6 +412,7 @@
       <!-- myadd -->
       <action id="myBack" class="com.maddyhome.idea.vim.action.motion.MyBackAction"/>
       <action id="myForward" class="com.maddyhome.idea.vim.action.motion.MyForwardAction"/>
+      <action id="methodComment" class="com.maddyhome.idea.vim.action.MethodCommentGenerator"/>
 
       <add-to-group group-id="Other.KeymapGroup"/>
     </group>

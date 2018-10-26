@@ -36,121 +36,125 @@ import org.jetbrains.annotations.Nullable;
  *
  */
 public abstract class VisualOperatorActionHandler extends EditorActionHandlerBase {
-  protected final boolean execute(@NotNull final Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
-    if (logger.isDebugEnabled()) logger.debug("execute, cmd=" + cmd);
+    private static final Logger logger = Logger.getInstance(VisualOperatorActionHandler.class.getName());
 
-    VisualStartFinishRunnable runnable = new VisualStartFinishRunnable(editor, cmd);
-    TextRange range = runnable.start();
+    protected final boolean execute(@NotNull final Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
+        if (logger.isDebugEnabled()) logger.debug("execute, cmd=" + cmd);
 
-    assert range != null : "Range must be not null for visual operator action " + getClass();
+        VisualStartFinishRunnable runnable = new VisualStartFinishRunnable(editor, cmd);
+        TextRange range = runnable.start();
 
-    final boolean res = execute(editor, context, cmd, range);
+        assert range != null : "Range must be not null for visual operator action " + getClass();
 
-    runnable.setRes(res);
-    runnable.finish();
+        final boolean res = execute(editor, context, cmd, range);
 
-    return res;
-  }
+        runnable.setRes(res);
+        runnable.finish();
 
-  protected abstract boolean execute(@NotNull Editor editor,
-                                     @NotNull DataContext context,
-                                     @NotNull Command cmd,
-                                     @NotNull TextRange range);
-
-  private static class VisualStartFinishRunnable {
-    public VisualStartFinishRunnable(Editor editor, Command cmd) {
-      this.editor = editor;
-      this.cmd = cmd;
-      this.res = true;
+        return res;
     }
 
-    public void setRes(boolean res) {
-      this.res = res;
+    protected abstract boolean execute(@NotNull Editor editor,
+                                       @NotNull DataContext context,
+                                       @NotNull Command cmd,
+                                       @NotNull TextRange range);
+
+    public static class VisualStartFinishRunnable {
+        private final Command cmd;
+        private final Editor  editor;
+        @Nullable
+        VisualChange change = null;
+        private boolean              res;
+        @NotNull
+        private CommandState.SubMode lastMode;
+        private boolean              wasRepeat;
+        private int                  lastColumn;
+
+        public VisualStartFinishRunnable(Editor editor, Command cmd) {
+            this.editor = editor;
+            this.cmd = cmd;
+            this.res = true;
+        }
+
+        public boolean getRes() {
+            return this.res ;
+        }
+
+        public void setRes(boolean res) {
+            this.res = res;
+        }
+
+        @Nullable
+        public TextRange start() {
+            logger.debug("start");
+            wasRepeat = false;
+            if (CommandState.getInstance(editor).getMode() == CommandState.Mode.REPEAT) {
+                wasRepeat = true;
+                lastColumn = EditorData.getLastColumn(editor);
+                VisualChange range = EditorData.getLastVisualOperatorRange(editor);
+                VimPlugin.getMotion().toggleVisual(editor, 1, 1, CommandState.SubMode.NONE);
+                if (range != null && range.getColumns() == MotionGroup.LAST_COLUMN) {
+                    EditorData.setLastColumn(editor, MotionGroup.LAST_COLUMN);
+                }
+            }
+
+            TextRange res = null;
+
+            if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_LINE) {
+                int start = VimPlugin.getMotion().moveCaretToLineStart(editor, editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionStart()).line);
+                int offset = EditorHelper.getLineEndOffset(editor, editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionEnd()).line, true);
+                res = new TextRange(start, offset + 1);
+            } else if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
+                res = VimPlugin.getMotion().getVisualRange(editor);
+                if (!wasRepeat) {
+                    change = VimPlugin.getMotion()
+                            .getVisualOperatorRange(editor, cmd == null ? Command.FLAG_MOT_LINEWISE : cmd.getFlags());
+                }
+                if (logger.isDebugEnabled()) logger.debug("change=" + change);
+            }
+
+            // If this is a mutli key change then exit visual now
+            if (cmd != null && (cmd.getFlags() & Command.FLAG_MULTIKEY_UNDO) != 0) {
+                logger.debug("multikey undo - exit visual");
+                VimPlugin.getMotion().exitVisual(editor);
+            } else if (cmd != null && (cmd.getFlags() & Command.FLAG_FORCE_LINEWISE) != 0) {
+                lastMode = CommandState.getInstance(editor).getSubMode();
+                if (lastMode != CommandState.SubMode.VISUAL_LINE && (cmd.getFlags() & Command.FLAG_FORCE_VISUAL) != 0) {
+                    VimPlugin.getMotion().toggleVisual(editor, 1, 0, CommandState.SubMode.VISUAL_LINE);
+                }
+            }
+
+            return res;
+        }
+
+        public void finish() {
+            logger.debug("finish");
+
+            if (cmd != null && (cmd.getFlags() & Command.FLAG_FORCE_LINEWISE) != 0) {
+                if (lastMode != CommandState.SubMode.VISUAL_LINE && (cmd.getFlags() & Command.FLAG_FORCE_VISUAL) != 0) {
+                    VimPlugin.getMotion().toggleVisual(editor, 1, 0, lastMode);
+                }
+            }
+
+            if (cmd == null ||
+                    ((cmd.getFlags() & Command.FLAG_MULTIKEY_UNDO) == 0 && (cmd.getFlags() & Command.FLAG_EXPECT_MORE) == 0)) {
+                logger.debug("not multikey undo - exit visual");
+                VimPlugin.getMotion().exitVisual(editor);
+                if (wasRepeat) {
+                    EditorData.setLastColumn(editor, lastColumn);
+                }
+            }
+
+            if (res) {
+                logger.debug("res");
+                if (change != null) {
+                    EditorData.setLastVisualOperatorRange(editor, change);
+                }
+
+                if (cmd != null) {
+                    CommandState.getInstance(editor).saveLastChangeCommand(cmd);
+                }
+            }
+        }
     }
-
-    @Nullable
-    public TextRange start() {
-      logger.debug("start");
-      wasRepeat = false;
-      if (CommandState.getInstance(editor).getMode() == CommandState.Mode.REPEAT) {
-        wasRepeat = true;
-        lastColumn = EditorData.getLastColumn(editor);
-        VisualChange range = EditorData.getLastVisualOperatorRange(editor);
-        VimPlugin.getMotion().toggleVisual(editor, 1, 1, CommandState.SubMode.NONE);
-        if (range != null && range.getColumns() == MotionGroup.LAST_COLUMN) {
-          EditorData.setLastColumn(editor, MotionGroup.LAST_COLUMN);
-        }
-      }
-
-      TextRange res = null;
-
-      if (CommandState.getInstance(editor).getSubMode() == CommandState.SubMode.VISUAL_LINE) {
-        int start = VimPlugin.getMotion().moveCaretToLineStart(editor,editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionStart()).line);
-        int offset= EditorHelper.getLineEndOffset(editor, editor.offsetToLogicalPosition(editor.getSelectionModel().getSelectionEnd()).line, true);
-        res = new TextRange(start, offset+1);
-      }
-      else if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
-        res = VimPlugin.getMotion().getVisualRange(editor);
-        if (!wasRepeat) {
-          change = VimPlugin.getMotion()
-            .getVisualOperatorRange(editor, cmd == null ? Command.FLAG_MOT_LINEWISE : cmd.getFlags());
-        }
-        if (logger.isDebugEnabled()) logger.debug("change=" + change);
-      }
-
-      // If this is a mutli key change then exit visual now
-      if (cmd != null && (cmd.getFlags() & Command.FLAG_MULTIKEY_UNDO) != 0) {
-        logger.debug("multikey undo - exit visual");
-        VimPlugin.getMotion().exitVisual(editor);
-      }
-      else if (cmd != null && (cmd.getFlags() & Command.FLAG_FORCE_LINEWISE) != 0) {
-        lastMode = CommandState.getInstance(editor).getSubMode();
-        if (lastMode != CommandState.SubMode.VISUAL_LINE && (cmd.getFlags() & Command.FLAG_FORCE_VISUAL) != 0) {
-          VimPlugin.getMotion().toggleVisual(editor, 1, 0, CommandState.SubMode.VISUAL_LINE);
-        }
-      }
-
-      return res;
-    }
-
-    public void finish() {
-      logger.debug("finish");
-
-      if (cmd != null && (cmd.getFlags() & Command.FLAG_FORCE_LINEWISE) != 0) {
-        if (lastMode != CommandState.SubMode.VISUAL_LINE && (cmd.getFlags() & Command.FLAG_FORCE_VISUAL) != 0) {
-          VimPlugin.getMotion().toggleVisual(editor, 1, 0, lastMode);
-        }
-      }
-
-      if (cmd == null ||
-          ((cmd.getFlags() & Command.FLAG_MULTIKEY_UNDO) == 0 && (cmd.getFlags() & Command.FLAG_EXPECT_MORE) == 0)) {
-        logger.debug("not multikey undo - exit visual");
-        VimPlugin.getMotion().exitVisual(editor);
-        if (wasRepeat) {
-          EditorData.setLastColumn(editor, lastColumn);
-        }
-      }
-
-      if (res) {
-        logger.debug("res");
-        if (change != null) {
-          EditorData.setLastVisualOperatorRange(editor, change);
-        }
-
-        if (cmd != null) {
-          CommandState.getInstance(editor).saveLastChangeCommand(cmd);
-        }
-      }
-    }
-
-    private final Command cmd;
-    private final Editor editor;
-    private boolean res;
-    @NotNull private CommandState.SubMode lastMode;
-    private boolean wasRepeat;
-    private int lastColumn;
-    @Nullable VisualChange change = null;
-  }
-
-  private static final Logger logger = Logger.getInstance(VisualOperatorActionHandler.class.getName());
 }

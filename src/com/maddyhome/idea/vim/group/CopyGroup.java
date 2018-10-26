@@ -179,7 +179,15 @@ public class CopyGroup {
         //    editor.getCaretModel().getLogicalPosition().line + 1 < editor.getDocument().getLineCount()) {
         //  text = text + '\n';
         //}
+        editor.offsetToLogicalPosition(editor.getCaretModel().getOffset());
+        if (StringUtils.isWhitespace(EditorHelper.getLineText(editor, editor.offsetToLogicalPosition(editor.getCaretModel().getOffset()).line))) {
+            if (text.endsWith("\n")) {
+                text = text.substring(0, text.length() - 1);
+            }
+
+        }
         final String _text = text;
+
         EditorModificationUtil.insertStringAtCaret(editor, _text, false, true, type);
         caretModel.moveToOffset(offset);
 

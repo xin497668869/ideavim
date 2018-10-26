@@ -37,6 +37,9 @@ import java.util.Set;
  * @author vlan
  */
 public class ChangeVisualAction extends VimCommandAction {
+    /**
+    *
+    **/
   public ChangeVisualAction() {
     super(new VisualOperatorActionHandler() {
       protected boolean execute(@NotNull Editor editor,

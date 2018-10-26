@@ -74,6 +74,7 @@ import com.maddyhome.idea.vim.helper.StringHelper;
 import com.maddyhome.idea.vim.option.BoundListOption;
 import com.maddyhome.idea.vim.option.BoundStringOption;
 import com.maddyhome.idea.vim.option.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -753,9 +754,13 @@ public class ChangeGroup {
      */
     public boolean deleteCharacter(@NotNull Editor editor, int count, boolean isChange) {
         int offset = VimPlugin.getMotion().moveCaretHorizontal(editor, count, true);
+        int start = editor.getCaretModel().getOffset();
+        if (offset < 0) {
+            offset = start + 1;
+        }
         if (offset != -1) {
             boolean res =
-                    deleteText(editor, new TextRange(editor.getCaretModel().getOffset(), offset), SelectionType.CHARACTER_WISE, true);
+                    deleteText(editor, new TextRange(start, offset), SelectionType.CHARACTER_WISE, false);
             int pos = editor.getCaretModel().getOffset();
             int norm = EditorHelper.normalizeOffset(editor, editor.getCaretModel().getLogicalPosition().line, pos, isChange);
             if (norm != pos) {
@@ -775,8 +780,8 @@ public class ChangeGroup {
     /**
      * Deletes count lines including the current line
      *
-     * @param editor The editor to remove the lines from
-     * @param count  The number of lines to delete
+     * @param editor    The editor to remove the lines from
+     * @param count     The number of lines to delete
      * @param needSaved
      * @return true if able to delete the lines, false if not
      */
@@ -1225,8 +1230,8 @@ public class ChangeGroup {
         if (kludge) {
             int size = EditorHelper.getFileSize(editor);
             int cnt = count * motion.getCount();
-            int pos1 = SearchHelper.findNextWordEnd(chars, offset, size, cnt, bigWord, false);
-            int pos2 = SearchHelper.findNextWordEnd(chars, pos1, size, -cnt, bigWord, false);
+            int pos1 = SearchHelper.findNextWordEnd(editor, chars, offset, size, cnt, bigWord, false);
+            int pos2 = SearchHelper.findNextWordEnd(editor, chars, pos1, size, -cnt, bigWord, false);
             if (logger.isDebugEnabled()) {
                 logger.debug("pos=" + offset);
                 logger.debug("pos1=" + pos1);
@@ -1623,6 +1628,9 @@ public class ChangeGroup {
         // Fix for http://youtrack.jetbrains.net/issue/VIM-35
         if (!range.normalize(EditorHelper.getFileSize(editor, true))) {
             return false;
+        }
+        if (needSaved && SelectionType.LINE_WISE.equals(type) && StringUtils.isWhitespace(editor.getDocument().getText(new com.intellij.openapi.util.TextRange(range.getStartOffset(), range.getEndOffset())))) {
+            needSaved = false;
         }
         if (!needSaved || (type == null || VimPlugin.getRegister().storeText(editor, range, type, true))) {
             final Document document = editor.getDocument();

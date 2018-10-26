@@ -18,7 +18,6 @@
 
 package com.maddyhome.idea.vim.helper;
 
-import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
@@ -32,151 +31,188 @@ import com.intellij.openapi.command.undo.UndoableAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.project.Project;
-import com.maddyhome.idea.vim.VimPlugin;
 import com.maddyhome.idea.vim.action.change.insert.VimUndoableAction;
 import com.maddyhome.idea.vim.command.CommandState;
+import com.maddyhome.idea.vim.extension.VimExtensionFacade;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.maddyhome.idea.vim.helper.StringHelper.parseKeys;
 
 /**
  * @author oleg
  */
 public class UndoRedoHelper {
-    private static List<String> commandNames = Arrays.asList("Vim Insert After Cursor", "Vim Insert Before Cursor");
 
     public static boolean undo(@NotNull final DataContext context, Editor editor) {
         final Project project = PlatformDataKeys.PROJECT.getData(context);
         final FileEditor fileEditor = PlatformDataKeys.FILE_EDITOR.getData(context);
-        final com.intellij.openapi.command.undo.UndoManager undoManager =
-                com.intellij.openapi.command.undo.UndoManager.getInstance(project);
+        final com.intellij.openapi.command.undo.UndoManager undoManager = project == null ? UndoManager.getGlobalInstance() : UndoManager.getInstance(project);
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
 
                 if (fileEditor != null && undoManager.isUndoAvailable(fileEditor)) {
-                    while (Boolean.TRUE.equals(isTargetStack(editor, undoManager, fileEditor, true, false))) {
-                        int stackSize = getStackSize(editor, undoManager, fileEditor, true);
+                    UndoActionType actionType = getUndoActionType(undoManager, fileEditor, true, false);
+                    while (UndoActionType.VimAction.equals(actionType)) {
                         undoManager.undo(fileEditor);
-                        if (stackSize > getStackSize(editor, undoManager, fileEditor, true) + 1) {
-                            break;
-                        }
+                        actionType = getUndoActionType(undoManager, fileEditor, true, false);
                     }
-                    while (Boolean.FALSE.equals(isTargetStack(editor, undoManager, fileEditor, true, false))) {
-                        int stackSize = getStackSize(editor, undoManager, fileEditor, true);
-                        undoManager.undo(fileEditor);
-                        if (stackSize > getStackSize(editor, undoManager, fileEditor, true) + 1) {
-                            break;
-                        }
+                    action(true, undoManager, fileEditor, editor);
+                    if (CommandState.getInstance(editor).getMode() != CommandState.Mode.COMMAND) {
+                        VimExtensionFacade.executeNormal(parseKeys("<Esc>"), editor);
                     }
-//                    editor.getSelectionModel().removeSelection();
-                    if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
-                        VimPlugin.getMotion().exitVisual(editor);
-                    }
+
                 }
             }
         });
         return true;
     }
 
+    public static void action(boolean isUndo, UndoManager undoManager, FileEditor fileEditor, Editor editor) {
+        UndoActionType undoActionType = getUndoActionType(undoManager, fileEditor, isUndo, !isUndo);
+        switch (undoActionType) {
+            case NoAction:
+                return;
+            case VimAction:
+                return;
+            case CommandAction:
+                if (isUndo) {
+                    undoManager.undo(fileEditor);
+                } else {
+                    undoManager.redo(fileEditor);
+                }
+                return;
+            case TypeAction:
+                int stackSize = getStackSize(editor, undoManager, isUndo);
+                if (isUndo) {
+                    undoManager.undo(fileEditor);
+                } else {
+                    undoManager.redo(fileEditor);
+                }
+                if (stackSize > getStackSize(editor, undoManager, isUndo) + 1) {
+                    break;
+                }
+                action(isUndo, undoManager, fileEditor, editor);
+                return;
+        }
+    }
 
     public static boolean redo(@NotNull final DataContext context) {
         final Project project = PlatformDataKeys.PROJECT.getData(context);
         final FileEditor fileEditor = PlatformDataKeys.FILE_EDITOR.getData(context);
-        Editor editorData = PlatformDataKeys.EDITOR.getData(context);
+        Editor editor = PlatformDataKeys.EDITOR.getData(context);
         final com.intellij.openapi.command.undo.UndoManager undoManager =
                 com.intellij.openapi.command.undo.UndoManager.getInstance(project);
-        while (Boolean.TRUE.equals(isTargetStack(editorData, undoManager, fileEditor, false, true))) {
-            int stackSize = getStackSize(editorData, undoManager, fileEditor, false);
-            undoManager.redo(fileEditor);
-            if (stackSize > getStackSize(editorData, undoManager, fileEditor, false) + 1) {
-                break;
-            }
-        }
         if (fileEditor != null && undoManager.isRedoAvailable(fileEditor)) {
-            while (Boolean.FALSE.equals(isTargetStack(editorData, undoManager, fileEditor, false, true))) {
-                int stackSize = getStackSize(editorData, undoManager, fileEditor, false);
-                undoManager.redo(fileEditor);
-                if (stackSize > getStackSize(editorData, undoManager, fileEditor, false) + 1) {
-                    break;
-                }
-            }
-            Editor editor = context.getData(CommonDataKeys.EDITOR);
-            if (editor != null) {
-                if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
-                    VimPlugin.getMotion().exitVisual(editor);
-                }
-            }
-            return true;
-        }
 
-        Editor editor = context.getData(CommonDataKeys.EDITOR);
-        if (editor != null) {
-            if (CommandState.getInstance(editor).getMode() == CommandState.Mode.VISUAL) {
-                VimPlugin.getMotion().exitVisual(editor);
+            UndoActionType actionType = getUndoActionType(undoManager, fileEditor, false, true);
+            while (UndoActionType.VimAction.equals(actionType)) {
+                undoManager.redo(fileEditor);
+                actionType = getUndoActionType(undoManager, fileEditor, false, true);
+            }
+            action(false, undoManager, fileEditor, editor);
+            if (CommandState.getInstance(editor).getMode() != CommandState.Mode.COMMAND) {
+                VimExtensionFacade.executeNormal(parseKeys("<Esc>"), editor);
             }
         }
-        return false;
+        return true;
+
     }
 
-    private static int getStackSize(Editor editor, UndoManager undoManager, FileEditor fileEditor, boolean isUndo) {
+    private static int getStackSize(Editor editor, UndoManager undoManager, boolean isUndo) {
         try {
-            Method getStackHolder = UndoManagerImpl.class.getDeclaredMethod("getStackHolder", boolean.class);
-            getStackHolder.setAccessible(true);
-            Object getUndoStacksHolder = getStackHolder.invoke(undoManager, isUndo);
-            Method getStack = getUndoStacksHolder.getClass().getDeclaredMethod("getStack", DocumentReference.class);
-            getStack.setAccessible(true);
-            DocumentReference documentReference = DocumentReferenceManager.getInstance().create(editor.getDocument());
 
-            LinkedList invoke = (LinkedList) getStack.invoke(getUndoStacksHolder, documentReference);
-            return invoke.size();
+            Object getUndoStacksHolder = UndoUtils.invokeMethod(UndoManagerImpl.class
+                    , "getStackHolder"
+                    , Collections.singletonList(boolean.class)
+                    , undoManager
+                    , isUndo);
+
+
+            LinkedList getStack = (LinkedList) UndoUtils.invokeMethod(getUndoStacksHolder.getClass()
+                    , "getStack"
+                    , Collections.singletonList(DocumentReference.class)
+                    , getUndoStacksHolder
+                    , DocumentReferenceManager.getInstance().create(editor.getDocument()));
+
+            return getStack.size();
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    private static Boolean isTargetStack(Editor editor, UndoManager undoManager, FileEditor fileEditor, boolean isUndo, boolean finishMark) {
-        try {
-            Method getStackHolder = UndoManagerImpl.class.getDeclaredMethod("getStackHolder", boolean.class);
-            getStackHolder.setAccessible(true);
-            Object getUndoStacksHolder = getStackHolder.invoke(undoManager, isUndo);
-            Method getLastAction = getUndoStacksHolder.getClass().getDeclaredMethod("getLastAction", Collection.class);
-            getLastAction.setAccessible(true);
-            Method getDocumentReferences = UndoManagerImpl.class.getDeclaredMethod("getDocumentReferences", FileEditor.class);
-            getDocumentReferences.setAccessible(true);
+    private static UndoActionType getUndoActionType(UndoManager undoManager, FileEditor fileEditor, boolean isUndo, boolean finishMark) {
+        Object getUndoStacksHolder = UndoUtils.invokeMethod(UndoManagerImpl.class
+                , "getStackHolder"
+                , Collections.singletonList(boolean.class)
+                , undoManager
+                , isUndo);
 
-            Object invoke = getLastAction.invoke(getUndoStacksHolder, getDocumentReferences.invoke(editor, fileEditor));
-            if (invoke == null) {
-                return false;
-            }
-            Method getActions = invoke.getClass().getMethod("getActions");
-            getActions.setAccessible(true);
+        Object getDocumentReferences = UndoUtils.invokeMethod(UndoManagerImpl.class
+                , "getDocumentReferences"
+                , Collections.singletonList(FileEditor.class)
+                , undoManager
+                , fileEditor);
 
-            List<UndoableAction> invoke1 = (List<UndoableAction>) getActions.invoke(invoke);
-            if (invoke1 == null || invoke1.isEmpty()) {
-                return false;
-            }
-            if (finishMark) {
-                for (UndoableAction undoableAction : invoke1) {
-                    if (undoableAction instanceof FinishMarkAction || undoableAction instanceof StartMarkAction) {
-                        return true;
-                    }
+
+        Object invoke = UndoUtils.invokeMethod(getUndoStacksHolder.getClass()
+                , "getLastAction"
+                , Collections.singletonList(Collection.class)
+                , getUndoStacksHolder
+                , getDocumentReferences);
+
+
+        if (invoke == null) {
+            return UndoActionType.NoAction;
+        }
+
+        String commandName = (String) UndoUtils.invokeMethod(invoke.getClass()
+                , "getCommandName"
+                , Collections.emptyList()
+                , invoke
+        );
+
+        if (!commandName.equals("Typing")
+                && !commandName.equals("Vim Backspace")
+                && !commandName.equals("Choose Lookup Item")
+                && StringUtils.isNotEmpty(commandName)
+        ) {
+            return UndoActionType.CommandAction;
+        }
+
+
+        List<UndoableAction> undoableActions = (List<UndoableAction>) UndoUtils.invokeMethod(invoke.getClass()
+                , "getActions"
+                , Collections.emptyList()
+                , invoke
+        );
+        if (undoableActions == null || undoableActions.isEmpty()) {
+            return UndoActionType.VimAction;
+        }
+        if (finishMark) {
+            for (UndoableAction undoableAction : undoableActions) {
+                if (undoableAction instanceof FinishMarkAction || undoableAction instanceof StartMarkAction) {
+                    return UndoActionType.CommandAction;
                 }
             }
-            return invoke1.get(0) instanceof VimUndoableAction;
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-
         }
-        return null;
+        return undoableActions.get(0) instanceof VimUndoableAction ? UndoActionType.VimAction : UndoActionType.TypeAction;
+
     }
+
+    public enum UndoActionType {
+        NoAction,
+        VimAction,
+        CommandAction,
+        TypeAction
+    }
+
+
 }

@@ -59,9 +59,9 @@ public class VimSurroundExtension extends VimNonDisposableExtension {
 
   private static final Map<Character, Pair<String, String>> SURROUND_PAIRS =
     ImmutableMap.<Character, Pair<String, String>>builder().put('b', Pair.create("(", ")"))
-      .put('(', Pair.create("( ", " )")).put(')', Pair.create("(", ")")).put('B', Pair.create("{", "}"))
-      .put('{', Pair.create("{ ", " }")).put('}', Pair.create("{", "}")).put('r', Pair.create("[", "]"))
-      .put('[', Pair.create("[ ", " ]")).put(']', Pair.create("[", "]")).put('a', Pair.create("<", ">"))
+      .put('(', Pair.create("(", ")"))//.put(')', Pair.create("(", ")")).put('B', Pair.create("{", "}"))
+      .put('{', Pair.create("{", "}"))//.put('}', Pair.create("{", "}")).put('r', Pair.create("[", "]"))
+      .put('[', Pair.create("[", "]"))//.put(']', Pair.create("[", "]")).put('a', Pair.create("<", ">"))
       .put('>', Pair.create("<", ">")).build();
 
   @NotNull

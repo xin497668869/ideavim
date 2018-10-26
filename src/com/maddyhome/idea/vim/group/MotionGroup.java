@@ -29,6 +29,8 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.editor.VisualPosition;
+import com.intellij.openapi.editor.event.CaretEvent;
+import com.intellij.openapi.editor.event.CaretListener;
 import com.intellij.openapi.editor.event.EditorFactoryAdapter;
 import com.intellij.openapi.editor.event.EditorFactoryEvent;
 import com.intellij.openapi.editor.event.EditorMouseEvent;
@@ -156,6 +158,12 @@ public class MotionGroup {
                                     public void run() {
                                         addEditorListener(editor);
                                         EditorData.setMotionGroup(editor, true);
+                                        editor.getCaretModel().addCaretListener(new CaretListener() {
+                                            @Override
+                                            public void caretPositionChanged(@NotNull CaretEvent event) {
+                                                EditorData.setLastColumn(editor, event.getNewPosition().column);
+                                            }
+                                        });
                                     }
                                 });
                             }
@@ -654,6 +662,7 @@ public class MotionGroup {
                 editor.getSelectionModel().setSelection(start, Math.max(start, end - 1));
 
                 break;
+            default:
         }
 
         setVisualMode(editor, visualMode);
@@ -751,9 +760,9 @@ public class MotionGroup {
             //}
         }
 
-        MotionGroup.moveCaret(editor, start);
+//        MotionGroup.moveCaret(editor, start);
         toggleVisual(editor, 1, 0, mode);
-        MotionGroup.moveCaret(editor, end);
+//        MotionGroup.moveCaret(editor, end);
         KeyHandler.getInstance().reset(editor);
     }
 

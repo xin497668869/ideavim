@@ -27,6 +27,7 @@ import com.maddyhome.idea.vim.command.CommandState;
 import com.maddyhome.idea.vim.command.MappingMode;
 import com.maddyhome.idea.vim.command.SelectionType;
 import com.maddyhome.idea.vim.common.TextRange;
+import com.maddyhome.idea.vim.handler.EditorActionHandlerBase;
 import com.maddyhome.idea.vim.handler.VisualOperatorActionHandler;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,16 +40,29 @@ import java.util.Set;
  */
 public class DeleteVisualWithOutCopyAction extends VimCommandAction {
     public DeleteVisualWithOutCopyAction() {
-        super(new VisualOperatorActionHandler() {
-            protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd,
-                                      @NotNull TextRange range) {
-                final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
-                if (mode == CommandState.SubMode.VISUAL_LINE) {
-                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false);
+        super(new EditorActionHandlerBase() {
+            @Override
+            protected boolean execute(@NotNull Editor editor, @NotNull DataContext context, @NotNull Command cmd) {
+                if (editor.getSelectionModel().hasSelection()) {
+
+                    VisualOperatorActionHandler.VisualStartFinishRunnable runnable = new VisualOperatorActionHandler.VisualStartFinishRunnable(editor, cmd);
+                    TextRange range = runnable.start();
+
+                    assert range != null : "Range must be not null for visual operator action " + getClass();
+
+                    final CommandState.SubMode mode = CommandState.getInstance(editor).getSubMode();
+                    if (mode == CommandState.SubMode.VISUAL_LINE) {
+                        runnable.setRes(VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false));
+                    } else {
+                        runnable.setRes(VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false));
+                    }
+                    runnable.finish();
+                    return runnable.getRes();
                 } else {
-                    return VimPlugin.getChange().deleteRange(editor, range, SelectionType.fromSubMode(mode), false, false);
+                    return VimPlugin.getChange().deleteCharacter(editor, cmd.getCount(), false);
                 }
             }
+
         });
     }
 
