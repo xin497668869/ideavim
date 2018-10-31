@@ -15,97 +15,80 @@
  */
 package com.xin.bookmarks.actions;
 
-import com.xin.bookmarks.Bookmark;
-import com.xin.bookmarks.BookmarkManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.xin.bookmarks.Bookmark;
+import com.xin.bookmarks.BookmarkManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author max
  */
 public abstract class GoToMnemonicBookmarkActionBase extends AnAction implements DumbAware {
-  private final int myNumber;
+    private final char myNumber;
 
-  public GoToMnemonicBookmarkActionBase(int n) {
-    myNumber = n;
-  }
-
-  @Override
-  public void update(@NotNull AnActionEvent e) {
-    e.getPresentation().setEnabled(e.getProject() != null);
-  }
-
-  @Override
-  public void actionPerformed(@NotNull AnActionEvent e) {
-    Project project = e.getProject();
-    if (project != null) {
-      Bookmark bookmark = BookmarkManager.getInstance(project).findBookmarkForMnemonic((char)('0' + myNumber));
-      if (bookmark != null) {
-        bookmark.navigate(true);
-      }
+    public GoToMnemonicBookmarkActionBase(char n) {
+        myNumber = n;
     }
-  }
 
-  public static class GotoBookmark0Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark0Action() {
-      super(0);
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        e.getPresentation().setEnabled(e.getProject() != null);
     }
-  }
 
-  public static class GotoBookmark1Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark1Action() {
-      super(1);
+    @Override
+    public void actionPerformed(@NotNull AnActionEvent e) {
+        Project project = e.getProject();
+        if (project != null) {
+            Bookmark bookmark = BookmarkManager.getInstance(project).findBookmarkForMnemonic(myNumber);
+            if (bookmark != null) {
+                bookmark.navigate(true);
+            }
+        }
     }
-  }
 
-  public static class GotoBookmark2Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark2Action() {
-      super(2);
+    public static class GotoBookmarkAAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkAAction() {
+            super('a');
+        }
     }
-  }
 
-  public static class GotoBookmark3Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark3Action() {
-      super(3);
+    public static class GotoBookmarkDAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkDAction() {
+            super('d');
+        }
     }
-  }
 
-  public static class GotoBookmark4Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark4Action() {
-      super(4);
+    public static class GotoBookmarkFAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkFAction() {
+            super('f');
+        }
     }
-  }
 
-  public static class GotoBookmark5Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark5Action() {
-      super(5);
+    public static class GotoBookmarkQAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkQAction() {
+            super('q');
+        }
     }
-  }
 
-  public static class GotoBookmark6Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark6Action() {
-      super(6);
+    public static class GotoBookmarkWAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkWAction() {
+            super('w');
+        }
     }
-  }
 
-  public static class GotoBookmark7Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark7Action() {
-      super(7);
+    public static class GotoBookmarkEAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkEAction() {
+            super('e');
+        }
     }
-  }
 
-  public static class GotoBookmark8Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark8Action() {
-      super(8);
+    public static class GotoBookmarkRAction extends GoToMnemonicBookmarkActionBase {
+        public GotoBookmarkRAction() {
+            super('r');
+        }
     }
-  }
 
-  public static class GotoBookmark9Action extends GoToMnemonicBookmarkActionBase {
-    public GotoBookmark9Action() {
-      super(9);
-    }
-  }
 }
