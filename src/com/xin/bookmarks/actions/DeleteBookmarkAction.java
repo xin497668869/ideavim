@@ -15,43 +15,43 @@
  */
 package com.xin.bookmarks.actions;
 
-import com.xin.bookmarks.Bookmark;
-import com.xin.bookmarks.BookmarkItem;
-import com.xin.bookmarks.BookmarkManager;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.ListUtil;
+import com.xin.bookmarks.Bookmark;
+import com.xin.bookmarks.BookmarkItem;
+import com.xin.bookmarks.BookmarkManager;
 
 import javax.swing.*;
 import java.util.List;
 
 class DeleteBookmarkAction extends DumbAwareAction {
-  private final Project myProject;
-  private final JList<BookmarkItem> myList;
+    private final Project             myProject;
+    private final JList<BookmarkItem> myList;
 
-  DeleteBookmarkAction(Project project, JList<BookmarkItem> list) {
-    super("Delete", "Delete current bookmark", AllIcons.General.Remove);
-    setEnabledInModalContext(true);
-    myProject = project;
-    myList = list;
-    registerCustomShortcutSet(CustomShortcutSet.fromString("DELETE", "BACK_SPACE","RIGHT"), list);
- }
-
-  @Override
-  public void update(AnActionEvent e) {
-    e.getPresentation().setEnabled(BookmarksAction.getSelectedBookmarks(myList).size() > 0);
-  }
-
-  @Override
-  public void actionPerformed(AnActionEvent e) {
-    List<Bookmark> bookmarks = BookmarksAction.getSelectedBookmarks(myList);
-    ListUtil.removeSelectedItems(myList);
-
-    for (Bookmark bookmark : bookmarks) {
-      BookmarkManager.getInstance(myProject).removeBookmark(bookmark);
+    DeleteBookmarkAction(Project project, JList<BookmarkItem> list) {
+        super("Delete", "Delete current bookmark", AllIcons.General.Remove);
+        setEnabledInModalContext(true);
+        myProject = project;
+        myList = list;
+        registerCustomShortcutSet(CustomShortcutSet.fromString("DELETE", "RIGHT"), list);
     }
-  }
+
+    @Override
+    public void update(AnActionEvent e) {
+        e.getPresentation().setEnabled(BookmarksAction.getSelectedBookmarks(myList).size() > 0);
+    }
+
+    @Override
+    public void actionPerformed(AnActionEvent e) {
+        List<Bookmark> bookmarks = BookmarksAction.getSelectedBookmarks(myList);
+        ListUtil.removeSelectedItems(myList);
+
+        for (Bookmark bookmark : bookmarks) {
+            BookmarkManager.getInstance(myProject).removeBookmark(bookmark);
+        }
+    }
 }

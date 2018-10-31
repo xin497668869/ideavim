@@ -371,7 +371,6 @@
 
     <!-- Bookmas -->
     <group id="myEditBookmarksGroup" popup="true">
-      <action id="myToggleBookmark" class="com.xin.bookmarks.actions.ToggleBookmarkAction"/>
       <action id="myToggleBookmarkWithMnemonic" class="com.xin.bookmarks.actions.ToggleBookmarkWithMnemonicAction"/>
       <action id="myShowBookmarks" class="com.xin.bookmarks.actions.BookmarksAction"/>
       <action id="myGotoNextBookmark" class="com.xin.bookmarks.actions.NextBookmarkAction"/>
@@ -382,32 +381,27 @@
     </group>
 
     <group id="myBookmarks" text="myBookmarks">
-      <reference ref="myToggleBookmark"/>
       <reference ref="myShowBookmarks"/>
       <reference ref="myGotoNextBookmark"/>
       <reference ref="myGotoPreviousBookmark"/>
 
-      <action id="myGotoBookmark0" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark0Action"/>
-      <action id="myGotoBookmark1" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark1Action"/>
-      <action id="myGotoBookmark2" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark2Action"/>
-      <action id="myGotoBookmark3" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark3Action"/>
-      <action id="myGotoBookmark4" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark4Action"/>
-      <action id="myGotoBookmark5" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark5Action"/>
-      <action id="myGotoBookmark6" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark6Action"/>
-      <action id="myGotoBookmark7" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark7Action"/>
-      <action id="myGotoBookmark8" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark8Action"/>
-      <action id="myGotoBookmark9" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmark9Action"/>
+      <action id="myGotoBookmarkA" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkAAction"/>
+      <action id="myGotoBookmarkD" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkDAction"/>
+      <action id="myGotoBookmarkF" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkFAction"/>
+      <action id="myGotoBookmarkQ" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkQAction"/>
+      <action id="myGotoBookmarkW" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkWAction"/>
+      <action id="myGotoBookmarkE" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkEAction"/>
+      <action id="myGotoBookmarkR" class="com.xin.bookmarks.actions.GoToMnemonicBookmarkActionBase$GotoBookmarkRAction"/>
 
-      <action id="myToggleBookmark0" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark0Action"/>
-      <action id="myToggleBookmark1" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark1Action"/>
-      <action id="myToggleBookmark2" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark2Action"/>
-      <action id="myToggleBookmark3" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark3Action"/>
-      <action id="myToggleBookmark4" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark4Action"/>
-      <action id="myToggleBookmark5" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark5Action"/>
-      <action id="myToggleBookmark6" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark6Action"/>
-      <action id="myToggleBookmark7" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark7Action"/>
-      <action id="myToggleBookmark8" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark8Action"/>
-      <action id="myToggleBookmark9" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmark9Action"/>
+      <action id="myGotoBookmark" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkMAction"/>
+
+      <action id="myToggleBookmarkA" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkAAction"/>
+      <action id="myToggleBookmarkD" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkDAction"/>
+      <action id="myToggleBookmarkF" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkFAction"/>
+      <action id="myToggleBookmarkQ" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkQAction"/>
+      <action id="myToggleBookmarkW" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkWAction"/>
+      <action id="myToggleBookmarkE" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkEAction"/>
+      <action id="myToggleBookmarkR" class="com.xin.bookmarks.actions.ToggleNumberedBookmarkActionBase$ToggleBookmarkRAction"/>
 
       <!-- myadd -->
       <action id="myBack" class="com.maddyhome.idea.vim.action.motion.MyBackAction"/>

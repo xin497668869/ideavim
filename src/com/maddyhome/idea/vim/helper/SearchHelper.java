@@ -155,7 +155,7 @@ public class SearchHelper {
         if (!startPosInStringFound) {
             bstart = findBlockLocation(chars, close, type, -1, pos, count);
             if (bstart != -1) {
-                bend = findBlockLocation(chars, type, close, 1, bstart + 1, 1);
+                bend = findBlockLocation(chars, type, close, 1, bstart + 1, 1)+1;
             }
         }
 

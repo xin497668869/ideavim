@@ -15,109 +15,112 @@
  */
 package com.xin.bookmarks.actions;
 
-import com.xin.bookmarks.Bookmark;
-import com.xin.bookmarks.BookmarkManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import com.xin.bookmarks.Bookmark;
+import com.xin.bookmarks.BookmarkManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author max
  */
 public abstract class ToggleNumberedBookmarkActionBase extends AnAction implements DumbAware {
-  private final int myNumber;
+    private final char    number;
+    private final boolean isMessage;
 
-  public ToggleNumberedBookmarkActionBase(int n) {
-    setEnabledInModalContext(true);
-    myNumber = n;
-  }
-
-  @Override
-  public void update(@NotNull AnActionEvent e) {
-    e.getPresentation().setEnabled(e.getProject() != null);
-  }
-
-  @Override
-  public void actionPerformed(@NotNull AnActionEvent e) {
-    Project project = e.getProject();
-    if (project == null) return;
-
-    BookmarksAction.BookmarkInContextInfo info = new BookmarksAction.BookmarkInContextInfo(e.getDataContext(), project).invoke();
-    if (info.getFile() == null) return;
-
-    Bookmark oldBookmark = info.getBookmarkAtPlace();
-    BookmarkManager manager = BookmarkManager.getInstance(project);
-
-    if (oldBookmark != null) {
-      manager.removeBookmark(oldBookmark);
+    public ToggleNumberedBookmarkActionBase(char number, boolean isMessage) {
+        setEnabledInModalContext(true);
+        this.number = number;
+        this.isMessage = isMessage;
     }
 
-    char mnemonic = (char)('0' + myNumber);
-    if (oldBookmark == null || oldBookmark.getMnemonic() != mnemonic) {
-      Bookmark bookmark = manager.addTextBookmark(info.getFile(), info.getLine(), "");
-      manager.setMnemonic(bookmark, mnemonic);
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        e.getPresentation().setEnabled(e.getProject() != null);
     }
-  }
 
-  public static class ToggleBookmark0Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark0Action() {
-      super(0);
-    }
-  }
 
-  public static class ToggleBookmark1Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark1Action() {
-      super(1);
-    }
-  }
+    @Override
+    public void actionPerformed(@NotNull AnActionEvent e) {
+        Project project = e.getProject();
 
-  public static class ToggleBookmark2Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark2Action() {
-      super(2);
-    }
-  }
+//        Editor editor = e.getDataContext().getData(CommonDataKeys.EDITOR);
+//        Alarm alarm = new Alarm();
 
-  public static class ToggleBookmark3Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark3Action() {
-      super(3);
-    }
-  }
+        if (project == null) return;
 
-  public static class ToggleBookmark4Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark4Action() {
-      super(4);
-    }
-  }
+        BookmarksAction.BookmarkInContextInfo info = new BookmarksAction.BookmarkInContextInfo(e.getDataContext(), project).invoke();
+        if (info.getFile() == null) return;
 
-  public static class ToggleBookmark5Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark5Action() {
-      super(5);
-    }
-  }
+        Bookmark oldBookmark = info.getBookmarkAtPlace();
+        BookmarkManager manager = BookmarkManager.getInstance(project);
 
-  public static class ToggleBookmark6Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark6Action() {
-      super(6);
-    }
-  }
+        if (oldBookmark != null) {
+            manager.removeBookmark(oldBookmark);
+        }
 
-  public static class ToggleBookmark7Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark7Action() {
-      super(7);
+        char mnemonic = number;
+        if (oldBookmark == null || oldBookmark.getMnemonic() != mnemonic) {
+            if(isMessage) {
+                String inputDialog = Messages.showInputDialog(project, "标签描述", "标签描述", null);
+                manager.addTextBookmark(info.getFile(), info.getPosition(), inputDialog);
+            }else {
+                Bookmark bookmark = manager.addTextBookmark(info.getFile(), info.getPosition(), "");
+                manager.setMnemonic(bookmark, mnemonic);
+            }
+        }
     }
-  }
 
-  public static class ToggleBookmark8Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark8Action() {
-      super(8);
+    public static class ToggleBookmarkAAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkAAction() {
+            super('a', false);
+        }
     }
-  }
 
-  public static class ToggleBookmark9Action extends ToggleNumberedBookmarkActionBase {
-    public ToggleBookmark9Action() {
-      super(9);
+    public static class ToggleBookmarkDAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkDAction() {
+            super('d', false);
+        }
     }
-  }
+
+    public static class ToggleBookmarkEAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkEAction() {
+            super('e', false);
+        }
+    }
+
+    public static class ToggleBookmarkFAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkFAction() {
+            super('f', false);
+        }
+    }
+
+
+    public static class ToggleBookmarkQAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkQAction() {
+            super('q', false);
+        }
+    }
+
+    public static class ToggleBookmarkWAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkWAction() {
+            super('w', false);
+        }
+    }
+
+    public static class ToggleBookmarkRAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkRAction() {
+            super('r', false);
+        }
+    }
+
+    public static class ToggleBookmarkMAction extends ToggleNumberedBookmarkActionBase {
+        public ToggleBookmarkMAction() {
+            super(' ', true);
+        }
+    }
+
 }

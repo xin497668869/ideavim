@@ -19,6 +19,7 @@ import com.intellij.openapi.wm.WindowManager;
 import com.intellij.util.messages.MessageBus;
 import com.maddyhome.idea.vim.action.change.insert.VimUndoableAction;
 import com.maddyhome.idea.vim.command.CommandState;
+import com.xin.bookmarks.BookmarkManager;
 import org.jetbrains.annotations.NotNull;
 
 import static com.maddyhome.idea.vim.extension.VimExtensionFacade.executeNormal;
@@ -32,7 +33,7 @@ public class CommandStatueBar implements StartupActivity {
 
     @Override
     public void runActivity(@NotNull Project project) {
-
+        BookmarkManager.getInstance(project);
         StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
         VimCommandStatusBarWidget widget = new VimCommandStatusBarWidget(project);
         statusBar.addWidget(widget, "before Position");
@@ -42,7 +43,7 @@ public class CommandStatueBar implements StartupActivity {
         CommandProcessor.getInstance().addCommandListener(new CommandListener() {
             @Override
             public void commandStarted(CommandEvent event) {
-                if (event.getCommandName().startsWith("Renaming")) {
+                if (event.getCommandName()!=null && event.getCommandName().startsWith("Renaming")) {
 
                     Editor selectedEditors = FileEditorManager.getInstance(event.getProject()).getSelectedTextEditor();
                     UndoableAction vimUndoableAction = new VimUndoableAction(

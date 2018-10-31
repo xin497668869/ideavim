@@ -54,7 +54,7 @@ public class ToggleBookmarkAction extends BookmarksAction implements DumbAware {
       BookmarkManager.getInstance(project).removeBookmark(info.getBookmarkAtPlace());
     }
     else {
-      BookmarkManager.getInstance(project).addTextBookmark(info.getFile(), info.getLine(), "");
+      BookmarkManager.getInstance(project).addTextBookmark(info.getFile(), info.getPosition(), "");
     }
   }
 }

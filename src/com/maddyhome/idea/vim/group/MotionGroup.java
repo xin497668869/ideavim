@@ -1727,7 +1727,7 @@ public class MotionGroup {
                 CommandState.getInstance(editor).pushState(CommandState.Mode.VISUAL, mode, MappingMode.VISUAL);
             }
 //            updateSelection(editor, start, end, null);
-            MotionGroup.moveCaret(editor, editor.getSelectionModel().getSelectionEnd(), true);
+            MotionGroup.moveCaret(editor, editor.getCaretModel().getOffset(), true);
 
             if (mode == CommandState.SubMode.VISUAL_CHARACTER ||
                     mode == CommandState.SubMode.VISUAL_BLOCK ||

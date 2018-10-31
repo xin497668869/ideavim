@@ -34,7 +34,6 @@ class ToggleSortBookmarksAction extends ToggleAction {
 
   @Override
   public void setSelected(AnActionEvent e, boolean state) {
-    UISettings.getInstance().setSortBookmarks(state);
     UISettings.getInstance().fireUISettingsChanged();
   }
 }
