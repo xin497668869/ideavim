@@ -155,7 +155,7 @@ public class SearchHelper {
         if (!startPosInStringFound) {
             bstart = findBlockLocation(chars, close, type, -1, pos, count);
             if (bstart != -1) {
-                bend = findBlockLocation(chars, type, close, 1, bstart + 1, 1)+1;
+                bend = findBlockLocation(chars, type, close, 1, bstart + 1, 1) + 1;
             }
         }
 
@@ -330,7 +330,13 @@ public class SearchHelper {
     }
 
     private static int findNextQuoteInLine(@NotNull CharSequence chars, int pos, char quote) {
-        return findQuoteInLine(chars, pos, quote, Direction.FORWARD);
+
+        int end = findQuoteInLine(chars, pos, quote, Direction.FORWARD);
+        final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
+        if (opt.getValue().equals("exclusive")) {
+            end++;
+        }
+        return end;
     }
 
     private static int findPreviousQuoteInLine(@NotNull CharSequence chars, int pos, char quote) {
@@ -467,6 +473,11 @@ public class SearchHelper {
         }
         final int current = Math.max(start, pos);
         int end = current;
+
+        final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
+        if (opt.getValue().equals("exclusive")) {
+            end++;
+        }
 
         if (chars.charAt(pos) == quote && current == pos) {
             final int quotes = countCharactersInLine(chars, pos, quote, false, Direction.BACK) + 1;
@@ -1109,12 +1120,9 @@ public class SearchHelper {
             if (res == pos || res == 0 || res == size - 1) {
                 break;
             }
-
             final BoundStringOption opt = (BoundStringOption) Options.getInstance().getOption("selection");
             if (opt.getValue().equals("exclusive")) {
-                if (CommandState.getInstance(editor).getMode() != CommandState.Mode.COMMAND) {
-                    res++;
-                }
+                res++;
             }
         }
 

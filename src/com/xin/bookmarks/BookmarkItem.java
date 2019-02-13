@@ -79,7 +79,7 @@ public class BookmarkItem extends ItemWrapper implements Comparable<BookmarkItem
         if (description != null) {
             SpeedSearch speedSearch = (SpeedSearch) renderer.getClientProperty("speedSearch");
             if (speedSearch.getMatcher() != null) {
-                final Iterable<TextRange> iterable = ((MinusculeMatcher) speedSearch.getMatcher()).matchingFragments(speedSearch.getFilter());
+                final Iterable<TextRange> iterable = ((MinusculeMatcher) speedSearch.getMatcher()).matchingFragments(description);
                 SpeedSearchUtil.appendColoredFragments(renderer, description, iterable, SimpleTextAttributes.REGULAR_ATTRIBUTES, new SimpleTextAttributes(null, null, null, SimpleTextAttributes.STYLE_SEARCH_MATCH));
             }else {
                 renderer.append(description, SimpleTextAttributes.REGULAR_ATTRIBUTES);

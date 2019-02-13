@@ -38,6 +38,7 @@ import java.util.List;
 public class ActionListHandler extends CommandHandler {
   public ActionListHandler() {
     super("actionlist", "", RANGE_FORBIDDEN | DONT_REOPEN | ARGUMENT_OPTIONAL);
+
   }
 
   public boolean execute(@NotNull Editor editor, @NotNull final DataContext context,
@@ -46,8 +47,7 @@ public class ActionListHandler extends CommandHandler {
     final List<String> args = StringUtil.split(arg, "*");
     final ActionManager actionManager = ActionManager.getInstance();
     final List<String> actionNames = Arrays.asList(actionManager.getActionIds(""));
-    Collections.sort(actionNames, String.CASE_INSENSITIVE_ORDER);
-
+  
     final StringBuilder builder = new StringBuilder();
     builder.append("--- Actions ---\n");
 
